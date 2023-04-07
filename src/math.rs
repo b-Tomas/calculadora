@@ -73,7 +73,7 @@ pub fn det(m: &Matrix) -> Result<f32, Box<dyn Error>> {
 	return Ok(_det_recursivo(&m, &vec![false; m.n], &vec![false; m.m], true));
 }
 
-pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> { // NOTE: al dope
+pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> { // NOTE: al dope 
     if !m.is_squared() {
         return Err("Bad dimensions")?;
     }
