@@ -110,5 +110,23 @@ mod tests {
         assert_eq!(res[1][0], -1.0);
         assert_eq!(res[1][1], 1.0);
     }
-    
+        #[test] // test for id matrix
+    fn test_id() {
+        let n:usize=3;
+        let res: Matrix= math::id_matrix(n).unwrap();
+        
+        assert_eq!(res[0][0],1.0);
+        assert_eq!(res[1][1],1.0);
+        assert_eq!(res[2][2],1.0);
+    }
+    #[test] //test for trasp matrix 
+    fn test_trasp() {
+        let m: Matrix= Matrix::new_from(2,2, &[&[2.0,-1.0], &[3.0,6.0]]).unwrap();
+        let res: Matrix= math::trasp_squared_matrix(&m).unwrap();
+         
+        assert_eq!(res[0][0], 2.0);
+        assert_eq!(res[0][1], 3.0);
+        assert_eq!(res[1][0], -1.0);
+        assert_eq!(res[1][1], 6.0);
+    }
 }
