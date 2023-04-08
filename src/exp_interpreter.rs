@@ -72,6 +72,7 @@ static OPERATIONS: Map<&str, Operations> = phf_map! {
     "^" => Operations::Pow,
     "V" => Operations::Inv,
     "T" => Operations::Transp,
+    "DET" => Operations::Det,
 };
 
 static OP_PRECEDENCE: Map<&str, usize> = phf_map! {
@@ -88,6 +89,7 @@ static OP_PRECEDENCE: Map<&str, usize> = phf_map! {
 static UNARY_OPS: Map<&str, bool> = phf_map! {
     "V" => true,
     "T" => true,
+    "DET" => true,
 };
 
 fn is_operator(key: &str) -> bool {
@@ -179,6 +181,8 @@ fn postfix_to_tree<'a>(
                 }
             }
             stack.push(node);
+        } else {
+            return None;
         }
     }
     if stack.len() > 0 {
