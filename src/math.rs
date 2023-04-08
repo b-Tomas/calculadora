@@ -74,7 +74,6 @@ pub fn det(m: &Matrix) -> Result<f32, Box<dyn Error>> {
 	return Ok(_det_recursivo(&m, &vec![false; m.n], &vec![false; m.m], true));
 }
 
-
 pub fn id_matrix(n: usize) -> Result<Matrix, Box<dyn Error>> {
     let mut res: Matrix = Matrix::new_empty(n, n);
     for i in 0..n {
