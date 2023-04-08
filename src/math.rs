@@ -72,8 +72,34 @@ pub fn det(m: &Matrix) -> Result<f32, Box<dyn Error>> {
 
 	return Ok(_det_recursivo(&m, &vec![false; m.n], &vec![false; m.m], true));
 }
+//april 7 update
+pub fn id_matrix(n:usize) -> Result<Matrix, Box<dyn Error>>{
+	let mut res: Matrix=Matrix::new_empty(n, n);
+	for i in 0..n {
+			res.set(i,i,1.0);
+		}
+	return Ok(res);
+}
 
-pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> { // NOTE: al dope
+
+pub fn trasp_squared_matrix (m: &Matrix) -> Result<Matrix, Box<dyn Error>>{
+	if !m.is_squared() {  return Err("Bad dimensions")?;}
+	let mut res: Matrix= Matrix::new_empty(m.n,m.m);
+	for i in 0..m.n{
+		for j in 0..m.m{
+			if i!=j{
+				res.set(j,i, m[i][j]);
+			}
+			else {
+				res.set(i,j, m[i][j]);
+			}
+		}	
+	}
+	return Ok(res);
+}
+
+
+pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> { // NOTE: al dope 
     if !m.is_squared() {
         return Err("Bad dimensions")?;
     }
