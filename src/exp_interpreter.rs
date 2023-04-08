@@ -2,7 +2,7 @@ use phf::{phf_map, Map};
 
 // Tools for interpreting and calculating expressions
 
-use std::{collections::HashMap, mem::ManuallyDrop};
+use std::{collections::{HashMap, btree_set::Union}, mem::ManuallyDrop};
 
 use crate::structs::Matrix;
 
@@ -18,10 +18,60 @@ enum Operations {
     Inv,
 }
 
-pub union Operand<'a> {
-    operation: std::mem::ManuallyDrop<Operations>,
-    scalar: f32,
-    matrix: &'a Matrix,
+pub enum Operand<'a> {
+    Operation(Operations),
+    Scalar(f32),
+    Matrix(&'a Matrix),
+}
+
+impl<'a> Operand<'a> {
+    /// Returns `true` if the operand is [`Operation`].
+    ///
+    /// [`Operation`]: Operand::Operation
+    #[must_use]
+    pub fn is_operation(&self) -> bool {
+        matches!(self, Self::Operation(..))
+    }
+
+    /// Returns `true` if the operand is [`Scalar`].
+    ///
+    /// [`Scalar`]: Operand::Scalar
+    #[must_use]
+    pub fn is_scalar(&self) -> bool {
+        matches!(self, Self::Scalar(..))
+    }
+
+    /// Returns `true` if the operand is [`Matrix`].
+    ///
+    /// [`Matrix`]: Operand::Matrix
+    #[must_use]
+    pub fn is_matrix(&self) -> bool {
+        matches!(self, Self::Matrix(..))
+    }
+
+    pub fn as_operation(&self) -> Option<&Operations> {
+        if let Self::Operation(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_scalar(&self) -> Option<&f32> {
+        if let Self::Scalar(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_matrix(&self) -> Option<&&'a Matrix> {
+        if let Self::Matrix(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
 }
 
 pub struct ExpTree<'a> {
@@ -32,11 +82,7 @@ pub struct ExpTree<'a> {
 
 impl<'a> ExpTree<'a> {
     pub fn new(op: Operand<'a>) -> ExpTree<'a> {
-        return ExpTree {
-            op,
-            left_op: None,
-            right_op: None,
-        };
+        return ExpTree { op, left_op: None, right_op: None };
     }
 
     pub fn left_op(&self) -> &Option<Box<ExpTree<'a>>> {
@@ -61,6 +107,10 @@ impl<'a> ExpTree<'a> {
 
     pub fn set_op(&mut self, op: Operand<'a>) {
         self.op = op;
+    }
+
+    pub fn is_leaf(self) -> bool {
+        return self.left_op().is_none() && self.right_op().is_none();
     }
 }
 
@@ -152,15 +202,13 @@ fn postfix_to_tree<'a>(
     for elem in postfix_exp {
         // If operand
         if let Some(num) = elem.trim().parse::<f32>().ok() {
-            stack.push(ExpTree::new(Operand { scalar: num }))
+            stack.push(ExpTree::new(Operand::Scalar(num)))
         } else if let Some(mat) = definitions.get(elem) {
-            stack.push(ExpTree::new(Operand { matrix: mat }))
+            stack.push(ExpTree::new(Operand::Matrix(mat)))
         }
         // If operator
         else if let Some(operand) = OPERATIONS.get(elem) {
-            let mut node = ExpTree::new(Operand {
-                operation: ManuallyDrop::new(*operand),
-            });
+            let mut node = ExpTree::new(Operand::Operation(*operand));
             // If unary add one child to the left, otherwise add both
             if let Some(is_unary) = UNARY_OPS.get(elem) {
                 if *is_unary {
@@ -235,12 +283,11 @@ mod tests {
         ]);
 
         let tree = postfix_to_tree(&postfix, &definitions).unwrap();
-        unsafe {
-            assert_eq!(*tree.op().operation, Operations::Sum);
-            assert_eq!(tree.left_op().as_ref().unwrap().op().scalar, 2.0);
-            assert_eq!(*tree.right_op().as_ref().unwrap().op().operation, Operations::Mul);
-            assert_eq!(*tree.right_op().as_ref().unwrap().left_op().as_ref().unwrap().op().operation, Operations::Sum);
-            // Me cansé, pero creo que anda bien
-        }
+        assert!(tree.op().is_operation());
+        assert_eq!(tree.op().as_operation(), Some(&Operations::Sum));
+        assert_eq!(tree.left_op().as_ref().unwrap().op().as_scalar(), Some(&2.0));
+        assert_eq!(tree.right_op().as_ref().unwrap().op().as_operation(), Some(&Operations::Mul));
+        assert_eq!(tree.right_op().as_ref().unwrap().left_op().as_ref().unwrap().op().as_operation(), Some(&Operations::Sum));
+        // Me cansé, pero creo que anda bien
     }
 }
