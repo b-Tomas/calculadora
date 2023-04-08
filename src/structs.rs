@@ -1,4 +1,4 @@
-use std::{ops::Index, error::Error};
+use std::{error::Error, ops::Index};
 
 #[derive(Debug)]
 pub struct Matrix {
@@ -66,5 +66,52 @@ impl Index<usize> for Matrix {
         assert!(row_index < self.m);
 
         &self.data[row_index]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::structs::Matrix;
+
+    fn create2by2() -> Matrix {
+        return Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
+    }
+
+    #[test]
+    fn create_empty_matrix() {
+        let rows: usize = 4;
+        let cols: usize = 3;
+        let matrix_a = Matrix::new_empty(rows, cols);
+        for i in 0..rows {
+            for j in 0..cols {
+                assert_eq!(matrix_a[i][j], 0.0)
+            }
+        }
+        assert_eq!(matrix_a.m, rows);
+        assert_eq!(matrix_a.n, cols);
+    }
+
+    #[test]
+    fn create_matrix_from_data() {
+        let m = Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
+        assert_eq!(m[0][0], 1.0);
+        assert_eq!(m[0][1], 2.0);
+        assert_eq!(m[1][0], 3.0);
+        assert_eq!(m[1][1], 4.0);
+    }
+
+    #[test]
+    fn is_squared() {
+        assert!(create2by2().is_squared());
+        assert!(!Matrix::new_from(1, 2, &[&[1.0, 2.0]]).unwrap().is_squared())
+    }
+
+    #[test]
+    fn equals() {
+        let m1 = create2by2();
+        let m2 = create2by2();
+        assert!(m1.equals(m2));
+        let m3 = Matrix::new_from(2, 3, &[&[1.0, 2.0, 3.0], &[3.0, 4.0, 3.0]]).unwrap();
+        assert!(!m1.equals(m3));
     }
 }
