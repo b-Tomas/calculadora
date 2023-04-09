@@ -156,7 +156,40 @@ pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
     }
     return Ok(res);
 }
+pub fn adj(m:&Matrix) -> Result<Matrix, Box<dyn Error>>{
+    if !m.is_squared(){
+        return Err("Bad dimensions")?;
+    }
+    let mut sign:bool=true;
+    let mut res:Matrix =Matrix::new_empty(m.n, m.m);
+    for i in 0..m.n{
+        for j in 0..m.m{
+            let mut hidden_rows: Vec<bool> = vec![false; m.n];
+            let mut hidden_columns: Vec<bool> = vec![false; m.m];
+            hidden_rows[i] = true;
+            hidden_columns[j] = true;
+            res.set(i,j, (if sign {1.0} else {-1.0 }* _det_recursivo(&m,&hidden_rows,&hidden_columns)));
+            sign = !sign;
+        }
+    }
+    return Ok(res);
+}
 
+pub fn inverse_matrix (m: &Matrix) -> Result<Matrix, Box<dyn Error>>{
+    if !m.is_squared(){
+        return Err("Bad dimensions")?;
+    } else {
+        let aux:f32 = det(&m).unwrap();
+        if aux != 0.0 {
+            let trasp: Matrix = transp_squared_matrix(&m).unwrap();
+            let adj: Matrix = adj(&trasp).unwrap(); // Calculo el adjunto de la traspuesta
+            let inverse: Matrix = mul_scalar(&adj, 1.0 / aux);
+            return Ok(inverse);
+        } else {
+            return Err("No inverse")?;
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use crate::{math::{self, pow, id_matrix}, structs::Matrix};
@@ -231,6 +264,19 @@ mod tests {
     }
 
     #[test]
+    fn determinant2x2() {
+        let m = Matrix::new_from(2,2,&[&[6.0,7.0], &[-2.0, 8.0]]).unwrap();
+        assert_eq!(math::det(&m).unwrap(), 62.0);
+    }
+
+    #[test]
+    fn determinant3x3(){
+        let m:Matrix=Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
+        assert_eq!(math::det(&m).unwrap(), 30.0);
+    }
+
+
+    #[test]
     fn orthogonal_test() {
         let m = Matrix::new_from(2, 2, &[&[1.0, -1.0], &[1.0, 1.0]]).unwrap();
         let res = math::inverse_ortogonal_matrix(&m).unwrap();
@@ -245,7 +291,6 @@ mod tests {
     fn test_id() {
         let n: usize = 3;
         let res: Matrix = math::id_matrix(n);
-        
         assert_eq!(res[0][0], 1.0);
         assert_eq!(res[1][1], 1.0);
         assert_eq!(res[2][2], 1.0);
@@ -268,5 +313,38 @@ mod tests {
         assert!(pow(&mat, 0).unwrap().equals(&id_matrix(2)));
         assert!(pow(&mat, 1).unwrap().equals(&mat));
         assert!(pow(&mat, 2).unwrap().equals(&Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 22.0]]).unwrap()));
+    }
+
+    #[test] //test for ad matrix
+    fn test_adj() {
+        let m: Matrix = Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
+        let res: Matrix = math::adj(&m).unwrap();
+
+        assert_eq!(res[0][0], 62.0);
+        assert_eq!(res[0][1], 4.0);
+        assert_eq!(res[0][2], -30.0);
+        assert_eq!(res[1][0], 2.0);
+        assert_eq!(res[1][1], 4.0);
+        assert_eq!(res[1][2], 0.0);
+        assert_eq!(res[2][0], -25.0);
+        assert_eq!(res[2][1], -5.0);
+        assert_eq!(res[2][2], 15.0);
+    }
+
+    #[test]
+    fn inverse_test() {
+        let m: Matrix = Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
+        let res: Matrix = math::inverse_matrix(&m).unwrap();
+        let e:f32=0.0001;
+
+        assert!((res[0][0] - 31.00/15.00).abs()<e);
+        assert!((res[0][1] - 1.00/15.00).abs()<e);
+        assert!((res[0][2] - -5.00/6.00).abs()<e);
+        assert!((res[1][0] - 2.00/15.00).abs()<e);
+        assert!((res[1][1] - 2.00/15.00).abs()<e);
+        assert!((res[1][2] - -1.00/6.00).abs()<e);
+        assert!((res[2][0] - -1.00).abs()<e);
+        assert!((res[2][1] - 0.0).abs()<e);
+        assert!((res[2][2] - 1.00/2.00).abs()<e);
     }
 }
