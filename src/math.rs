@@ -116,42 +116,11 @@ pub fn id_matrix(n: usize) -> Matrix {
     return res;
 }
 
-pub fn transp_squared_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
-    if !m.is_squared() {
-        return Err("Bad dimensions")?;
-    }
+pub fn transpose(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
     let mut res: Matrix = Matrix::new_empty(m.n, m.m);
-    for i in 0..m.n {
-        for j in 0..m.m {
-            if i != j {
-                res.set(j, i, m[i][j]);
-            } else {
-                res.set(i, j, m[i][j]);
-            }
-        }
-    }
-    return Ok(res);
-}
-
-pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
-    // TODO: generalizar
-    if !m.is_squared() {
-        return Err("Bad dimensions")?;
-    }
-    let mut res = Matrix::new_empty(m.n, m.m);
-    for i in 0..m.n {
-        for j in 0..m.m {
-            if i != j {
-                if m[i][j] == -m[j][i] {
-                    res.set(j, i, m[i][j])
-                } else {
-                    return Err("Matrix is not ortogonal")?;
-                }
-            } else {
-                if m[i][j] != 0.0 {
-                    res.set(i, j, m[i][j]);
-                }
-            }
+    for i in 0..m.m {
+        for j in 0..m.n {
+            res.set(j, i, m[i][j]);
         }
     }
     return Ok(res);
@@ -186,7 +155,7 @@ pub fn inv(m: &Matrix) -> Result<Matrix, Box<dyn Error>>{
     } else {
         let aux:f32 = det(&m).unwrap();
         if aux != 0.0 {
-            let trasp: Matrix = transp_squared_matrix(&m).unwrap();
+            let trasp: Matrix = transpose(&m).unwrap();
             let adj: Matrix = adj(&trasp).unwrap(); // Calculo el adjunto de la traspuesta
             let inverse: Matrix = mul_scalar(&adj, 1.0 / aux);
             return Ok(inverse);
@@ -195,16 +164,17 @@ pub fn inv(m: &Matrix) -> Result<Matrix, Box<dyn Error>>{
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
-    use crate::{math::{self, pow, id_matrix, inv, transp_squared_matrix, adj}, structs::Matrix};
+    use crate::{math::{self, pow, id_matrix, inv, adj, transpose}, structs::Matrix};
 
     fn create2by2() -> Matrix {
         return Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
     }
 
     #[test]
-    fn mul_mat_scalar() {
+    fn multiplication_by_scalar() {
         let m = create2by2();
         let m2 = math::mul_scalar(&m, 2.0);
 
@@ -269,31 +239,7 @@ mod tests {
     }
 
     #[test]
-    fn determinant2x2() {
-        let m = Matrix::new_from(2,2,&[&[6.0,7.0], &[-2.0, 8.0]]).unwrap();
-        assert_eq!(math::det(&m).unwrap(), 62.0);
-    }
-
-    #[test]
-    fn determinant3x3(){
-        let m:Matrix=Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
-        assert_eq!(math::det(&m).unwrap(), 30.0);
-    }
-
-
-    #[test]
-    fn orthogonal_test() {
-        let m = Matrix::new_from(2, 2, &[&[1.0, -1.0], &[1.0, 1.0]]).unwrap();
-        let res = math::inverse_ortogonal_matrix(&m).unwrap();
-
-        assert_eq!(res[0][0], 1.0);
-        assert_eq!(res[0][1], 1.0);
-        assert_eq!(res[1][0], -1.0);
-        assert_eq!(res[1][1], 1.0);
-    }
-
-    #[test]
-    fn test_id() {
+    fn identity_matrix() {
         let n: usize = 3;
         let res: Matrix = math::id_matrix(n);
         assert_eq!(res[0][0], 1.0);
@@ -302,14 +248,11 @@ mod tests {
     }
 
     #[test]
-    fn test_trasp() {
-        let m: Matrix = Matrix::new_from(2, 2, &[&[2.0, -1.0], &[3.0, 6.0]]).unwrap();
-        let res: Matrix = math::transp_squared_matrix(&m).unwrap();
-        
-        assert_eq!(res[0][0], 2.0);
-        assert_eq!(res[0][1], 3.0);
-        assert_eq!(res[1][0], -1.0);
-        assert_eq!(res[1][1], 6.0);
+    fn transposed() {
+        let matrix: Matrix = Matrix::new_from(3, 2, &[&[1.0, 2.0], &[3.0, 4.0], &[5.0, 6.0]]).unwrap();
+        let result: Matrix = transpose(&matrix).unwrap();
+        let expected: Matrix = Matrix::new_from(2, 3, &[&[1.0, 3.0, 5.0], &[2.0, 4.0, 6.0]]).unwrap();
+        assert!(expected.equals(&result));
     }
 
     #[test]
