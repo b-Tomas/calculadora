@@ -50,7 +50,23 @@ static FORBIDDEN_IDS: [&str; 8] = [
 ];
 
 fn show_var(elements: &[&str], definitions: &mut Definitions) {
-    todo!()
+    if elements.len() > 1 {
+        for i in 1..elements.len() {
+            if let Some((k, v)) = definitions.0.get_key_value(elements[i]) {
+                print!("{} = ", k);
+                print_value(v);
+                println!();
+            } else {
+                println!("La variable `{}` no está definida", elements[i]);
+            }
+        }
+    } else {
+        for (k, v) in &definitions.0 {
+            print!("{} = ", k);
+            print_value(v);
+            println!();
+        }
+    }
 }
 
 fn solve_equation(command: &[&str], definitions: &Definitions) {
@@ -81,7 +97,7 @@ fn declare_var(command: &[&str], definitions: &mut Definitions) {
                             let valor = Value::Scalar(valor);
                             if let Some(anterior) = definitions.0.insert(id.to_string(), valor) {
                                 println!("Valor anterior:");
-                                print_value(anterior);
+                                print_value(&anterior);
                             } 
                             return;
                         } else {
@@ -102,7 +118,7 @@ fn declare_var(command: &[&str], definitions: &mut Definitions) {
                             }
                             if let Some(anterior) = definitions.0.insert(id.to_string(), valor) {
                                 println!("Valor anterior:");
-                                print_value(anterior);
+                                print_value(&anterior);
                             }
                             return;
 
@@ -134,7 +150,7 @@ Uso:
             - `var PI ESCALAR 3.14`
             - `var MAT MATRIZ 2 2` El programa pedirá ingresar los datos separados por espacios y saltos de linea
     * `mostrar [identificador]`: Sin argumentos, muestra los detalles de todas las variables declaradas. Filtra por los nombres dados
-    * `ecu`
+    * `ecu`: Resolver una ecuación. La sintaxis para ecuaciones se detalla en el archivo README.md
     * `salir`: Termina el programa
 ";
     print!("{}", message);
@@ -155,8 +171,11 @@ fn print_matrix(mat: &Matrix) {
     }
 }
 
-fn print_value(value: Value) {
+fn print_value(value: &Value) {
     if let Some(matrix) = value.as_matrix() {
+        if matrix.m > 1 {
+            println!()
+        }
         print_matrix(matrix);
     } else if let Some(scalar) = value.as_scalar() {
         println!("{}", *scalar);
