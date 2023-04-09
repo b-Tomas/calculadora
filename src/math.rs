@@ -164,8 +164,8 @@ pub fn adj_calculus(m:&Matrix) -> Result<Matrix, Box<dyn Error>>{
 	let mut res:Matrix =Matrix::new_empty(m.n, m.m);
 	for i in 0..m.n{
 		for j in 0..m.m{
-			let mut hidden_rows : Vec<bool> = vec![false;m.n];
-			let mut hidden_columns :Vec<bool> = vec![false;m.m];
+			let mut hidden_rows: Vec<bool> = vec![false; m.n];
+			let mut hidden_columns: Vec<bool> = vec![false; m.m];
 			hidden_rows[i]=true;
 			hidden_columns[j]=true;
 			res.set(i,j, (if sign {1.0} else {-1.0}*_det_recursivo(&m,&hidden_rows,&hidden_columns)));
