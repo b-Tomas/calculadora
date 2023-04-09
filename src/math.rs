@@ -181,9 +181,9 @@ pub fn inverse_matrix (m: &Matrix) -> Result<Matrix, Box<dyn Error>>{
 	} else {
 		let aux: f32 = det(&m).unwrap();
 		if aux != 0.0 {
-			let trasp : Matrix = transp_squared_matrix(&m).unwrap();
-			let adj : Matrix = adj_calculus(&trasp).unwrap(); //Calculo el adjunto de la traspuesta
-			let inverse : Matrix = mul_scalar(&adj, 1.0/aux) ;
+			let trasp: Matrix = transp_squared_matrix(&m).unwrap();
+			let adj: Matrix = adj_calculus(&trasp).unwrap(); // Calculo el adjunto de la traspuesta
+			let inverse: Matrix = mul_scalar(&adj, 1.0 / aux);
 			return Ok(inverse);
 		} else {
 			return Err("No inverse")?;
