@@ -7,6 +7,12 @@ pub struct Matrix {
     data: Vec<Vec<f32>>,
 }
 
+impl Clone for Matrix {
+    fn clone(&self) -> Matrix {
+        Matrix { m: self.m.clone(), n: self.n.clone(), data: self.data.clone() }
+    }
+}
+
 impl Matrix {
     pub fn new_empty(rows: usize, cols: usize) -> Matrix {
         Matrix {
