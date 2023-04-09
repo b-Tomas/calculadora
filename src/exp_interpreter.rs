@@ -268,25 +268,26 @@ static OPERATIONS: Map<&str, Operators> = phf_map! {
     "/"   => Operators::Div,
     "*"   => Operators::Mul,
     "^"   => Operators::Pow,
-    "INV"   => Operators::Inv,
+    "INV" => Operators::Inv,
     "T"   => Operators::Transp,
     "DET" => Operators::Det,
 };
 
 static OP_PRECEDENCE: Map<&str, usize> = phf_map! {
-    "+" => 1,
-    "-" => 1,
-    "/" => 2,
-    "*" => 1,
-    "^" => 3,
+    "+"   => 1,
+    "-"   => 1,
+    "*"   => 1,
+    "/"   => 2,
+    "DET" => 2,
+    "^"   => 3,
     "INV" => 3,
-    "T" => 3,
+    "T"   => 3,
 };
 
 // All operations are binary unless specified here
 static UNARY_OPS: Map<&str, bool> = phf_map! {
     "INV" => true,
-    "T" => true,
+    "T"   => true,
     "DET" => true,
 };
 
@@ -467,6 +468,12 @@ mod tests {
         assert!(matrix.equals(&expected));
 
         // With determinant
+        let infix_exp = "( C ^ 2 ) T DET";
+        let expected = 9.0/64.0;
+        let result = *calculate(infix_exp, &definitions).unwrap().as_scalar().unwrap();
+        assert!(result == expected);
+
+        // Even more complex
         let infix_exp = "( A + B ) * ( C ^ 2 ) T DET";
         let expected = -9.0/8.0;
         let result = *calculate(infix_exp, &definitions).unwrap().as_scalar().unwrap();

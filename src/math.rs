@@ -1,5 +1,5 @@
 use crate::structs::Matrix;
-use std::{error::Error, convert::identity, process::id};
+use std::error::Error;
 
 pub fn sum(ma: &Matrix, mb: &Matrix) -> Result<Matrix, Box<dyn Error>> {
     if ma.m != mb.m || ma.n != mb.n {
