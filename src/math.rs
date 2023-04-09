@@ -332,7 +332,6 @@ mod tests {
 	}
 
 	#[test]
-
 	fn inverse_test() {
 		let m: Matrix = Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
 		let res: Matrix = math::inverse_matrix(&m).unwrap();
