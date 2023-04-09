@@ -1,5 +1,6 @@
 mod math;
 mod structs;
+mod exp_interpreter;
 
 fn main() {}
 pub fn inverse_matrix (m: &Matrix) -> Result<Matrix, Box<dyn Error>>{
