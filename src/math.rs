@@ -156,7 +156,6 @@ pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
     }
     return Ok(res);
 }
-
 #[cfg(test)]
 mod tests {
     use crate::{math::{self, pow, id_matrix}, structs::Matrix};
