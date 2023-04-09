@@ -152,7 +152,7 @@ impl<'a> ExpTree<'a> {
     }
 
     // Will return either a number or matrix as a result
-    pub fn solve(&self) -> Result<Value, Box<dyn Error>> {
+    fn solve(&self) -> Result<Value, Box<dyn Error>> {
         if self.is_leaf() {
             if self.op().is_operation() {
                 return Err("Leaf node has operator as only data")?;
@@ -296,7 +296,7 @@ fn is_operator(key: &str) -> bool {
 }
 
 // Struct that holds the currently declared variables 
-pub struct Definitions(HashMap<String, Value>);
+pub struct Definitions(pub HashMap<String, Value>);
 
 fn in_variable_defintions(key: &str, map: &Definitions) -> bool {
     map.0.keys().find(|&x| *x == *key).is_some()
