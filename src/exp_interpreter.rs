@@ -3,7 +3,7 @@ use phf::{phf_map, Map};
 // Tools for interpreting and calculating expressions
 use std::{collections::{HashMap}, error::Error};
 
-use crate::{structs::Matrix, math::{mul_scalar, mul, sum, sub, pow, transp_squared_matrix, det}};
+use crate::{structs::Matrix, math::{mul_scalar, mul, sum, sub, pow, transp_squared_matrix, det, inv}};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Operators {
@@ -184,7 +184,30 @@ impl<'a> ExpTree<'a> {
                         }
                     }
                 },
-                Operators::Div => todo!(), // TODO: Depends on matrix inverse
+                Operators::Div => {
+                    if let (Some(left), Some(right)) = (self.left_op(), self.right_op()) {
+                        if let (Ok(left), Ok(right)) = (left.solve(), right.solve()) {
+                            // Left and right are scalars, both are matrices, or matrix divided by num
+                            if let (Some(left), Some(right)) = (left.as_scalar(), right.as_scalar()) {
+                                if *right == 0.0 {
+                                    return Err("division by zero")?;
+                                }
+                                return Ok(Value::Scalar(left / right));
+                            } else if let (Some(left), Some(right)) = (left.as_matrix(), right.as_scalar()) {
+                                if *right == 0.0 {
+                                    return Err("division by zero")?;
+                                }
+                                return Ok(Value::Matrix(mul_scalar(left, 1.0/right)));
+                            } else if let (Some(left), Some(right)) = (left.as_matrix(), right.as_matrix()) {
+                                if let Ok(inverse) = inv(right) {
+                                    if let Ok(result) = mul(left, &inverse) {
+                                        return Ok(Value::Matrix(result));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 Operators::Sum => {
                     if let (Some(left), Some(right)) = (self.left_op(), self.right_op()) {
                         if let (Ok(left), Ok(right)) = (left.solve(), right.solve()) {
@@ -253,7 +276,19 @@ impl<'a> ExpTree<'a> {
                         }
                     }
                 }
-                Operators::Inv => todo!(), // TODO: Depends on matrix inverse
+                Operators::Inv => {
+                    if self.right_op().is_some() {
+                        return Err("Operador unario tiene dos operandos")?;
+                    } else if let Some(left) = self.left_op() {
+                        if let Ok(left) = left.solve() {
+                            if left.is_scalar() {
+                                return Err("No se puede aplicar la operacion Inversa a un escalar")?;
+                            } else if let Ok(result) = inv(left.as_matrix().unwrap()) {
+                                return Ok(Value::Matrix(result));
+                            }
+                        }
+                    }
+                }
             }
         } else {
             return Err("Non leaf node is not an operator")?;
@@ -458,7 +493,6 @@ mod tests {
 
     #[test]
     fn test_solve() {
-        // TODO: test every operation
         let expected = Matrix::new_from(2, 2, &[&[12.5, 6.5], &[23.25, 12.0]]).unwrap();
 
         let definitions = Definitions(HashMap::from([
@@ -489,5 +523,19 @@ mod tests {
         let result = *calculate(infix_exp, &definitions).unwrap().as_scalar().unwrap();
         assert!(result == expected);
 
+        // With inverse
+        let infix_exp = "( A ^ D ) INV";
+        let expected = Matrix::new_from(2, 2, &[&[5.5, -2.5], &[-3.75, 1.75]]).unwrap();
+        let result = calculate(infix_exp, &definitions).unwrap();
+        let result = result.as_matrix().unwrap();
+        assert!(result.equals(&expected));
+
+        // Division
+        assert!(*calculate("4 / 2", &definitions).unwrap().as_scalar().unwrap() == 2.0);
+        let infix_exp = "A / B";
+        let expected = Matrix::new_from(2, 2, &[&[2.0, -1.0], &[1.0, 0.0]]).unwrap();
+        let result = calculate(infix_exp, &definitions).unwrap();
+        let result = result.as_matrix().unwrap();
+        assert!(result.equals(&expected));
     }
 }
