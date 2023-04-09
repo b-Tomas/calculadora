@@ -71,6 +71,14 @@ pub fn mul_scalar(mat: &Matrix, num: f32) -> Matrix {
     return res;
 }
 
+// Calcula el determinante de la matriz mediante el desarrollo por cofactores
+pub fn det(m: &Matrix) -> Result<f32, Box<dyn Error>> {
+    if !m.is_squared() || m.m == 0 || m.n == 0 {
+        return Err("Bad dimensions")?;
+    }
+    return Ok(_det_recursivo(&m, &vec![false; m.n], &vec![false; m.m]));
+}
+
 fn _det_recursivo(m: &Matrix, hidden_rows: &Vec<bool>, hidden_cols: &Vec<bool>) -> f32 {
     let mut sum = 0.0;
     let mut sign_positive = true;
@@ -98,14 +106,6 @@ fn _det_recursivo(m: &Matrix, hidden_rows: &Vec<bool>, hidden_cols: &Vec<bool>) 
         break;
     }
     return sum;
-}
-
-// Calcula el determinante de la matriz mediante el desarrollo por cofactores
-pub fn det(m: &Matrix) -> Result<f32, Box<dyn Error>> {
-    if !m.is_squared() || m.m == 0 || m.n == 0 {
-        return Err("Bad dimensions")?;
-    }
-    return Ok(_det_recursivo(&m, &vec![false; m.n], &vec![false; m.m]));
 }
 
 pub fn id_matrix(n: usize) -> Matrix {
@@ -156,7 +156,6 @@ pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
     }
     return Ok(res);
 }
-
 pub fn adj(m:&Matrix) -> Result<Matrix, Box<dyn Error>>{
     if !m.is_squared(){
         return Err("Bad dimensions")?;
