@@ -134,7 +134,7 @@ pub fn transp_squared_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
 }
 
 pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
-    // NOTE: al dope
+    // TODO: generalizar
     if !m.is_squared() {
         return Err("Bad dimensions")?;
     }
@@ -156,26 +156,31 @@ pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
     }
     return Ok(res);
 }
+
+// Matriz de cofactores (sin trasponer)
 pub fn adj(m:&Matrix) -> Result<Matrix, Box<dyn Error>>{
-    if !m.is_squared(){
+    if !m.is_squared() {
         return Err("Bad dimensions")?;
     }
-    let mut sign:bool=true;
-    let mut res:Matrix =Matrix::new_empty(m.n, m.m);
-    for i in 0..m.n{
-        for j in 0..m.m{
-            let mut hidden_rows: Vec<bool> = vec![false; m.n];
-            let mut hidden_columns: Vec<bool> = vec![false; m.m];
+    let mut sign: bool = true;
+    let mut res: Matrix = Matrix::new_empty(m.n, m.m);
+    for i in 0..m.m {
+        for j in 0..m.n {
+            let mut hidden_rows: Vec<bool> = vec![false; m.m];
+            let mut hidden_columns: Vec<bool> = vec![false; m.n];
             hidden_rows[i] = true;
             hidden_columns[j] = true;
-            res.set(i,j, (if sign {1.0} else {-1.0 }* _det_recursivo(&m,&hidden_rows,&hidden_columns)));
+            res.set(i,j, (if sign {1.0} else {-1.0} * _det_recursivo(&m, &hidden_rows, &hidden_columns)));
+            sign = !sign;
+        }
+        if m.m % 2 == 0 {
             sign = !sign;
         }
     }
     return Ok(res);
 }
 
-pub fn inverse_matrix (m: &Matrix) -> Result<Matrix, Box<dyn Error>>{
+pub fn inv(m: &Matrix) -> Result<Matrix, Box<dyn Error>>{
     if !m.is_squared(){
         return Err("Bad dimensions")?;
     } else {
@@ -192,7 +197,7 @@ pub fn inverse_matrix (m: &Matrix) -> Result<Matrix, Box<dyn Error>>{
 }
 #[cfg(test)]
 mod tests {
-    use crate::{math::{self, pow, id_matrix}, structs::Matrix};
+    use crate::{math::{self, pow, id_matrix, inv, transp_squared_matrix, adj}, structs::Matrix};
 
     fn create2by2() -> Matrix {
         return Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
@@ -329,12 +334,17 @@ mod tests {
         assert_eq!(res[2][0], -25.0);
         assert_eq!(res[2][1], -5.0);
         assert_eq!(res[2][2], 15.0);
+
+        let m = Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 20.0]]).unwrap();
+        let res = adj(&m).unwrap();
+        let expected = Matrix::new_from(2, 2, &[&[20.0, -15.0], &[-10.0, 7.0]]).unwrap();
+        assert!(res.equals(&expected));
     }
 
     #[test]
     fn inverse_test() {
         let m: Matrix = Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
-        let res: Matrix = math::inverse_matrix(&m).unwrap();
+        let res: Matrix = math::inv(&m).unwrap();
         let e:f32=0.0001;
 
         assert!((res[0][0] - 31.00/15.00).abs()<e);
@@ -346,5 +356,10 @@ mod tests {
         assert!((res[2][0] - -1.00).abs()<e);
         assert!((res[2][1] - 0.0).abs()<e);
         assert!((res[2][2] - 1.00/2.00).abs()<e);
+
+        let m = Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 22.0]]).unwrap();
+        let res = inv(&m).unwrap();
+        let expected = Matrix::new_from(2, 2, &[&[5.5, -2.5], &[-3.75, 1.75]]).unwrap();
+        assert!(res.equals(&expected));
     }
 }

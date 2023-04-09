@@ -3,7 +3,7 @@ use phf::{phf_map, Map};
 // Tools for interpreting and calculating expressions
 use std::{collections::{HashMap}, error::Error};
 
-use crate::{structs::Matrix, math::{mul_scalar, mul, sum, sub, pow, transp_squared_matrix, det}};
+use crate::{structs::Matrix, math::{mul_scalar, mul, sum, sub, pow, transp_squared_matrix, det, inv}};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Operators {
@@ -253,7 +253,19 @@ impl<'a> ExpTree<'a> {
                         }
                     }
                 }
-                Operators::Inv => todo!(), // TODO: Depends on matrix inverse
+                Operators::Inv => {
+                    if self.right_op().is_some() {
+                        return Err("Operador unario tiene dos operandos")?;
+                    } else if let Some(left) = self.left_op() {
+                        if let Ok(left) = left.solve() {
+                            if left.is_scalar() {
+                                return Err("No se puede aplicar la operacion Inversa a un escalar")?;
+                            } else if let Ok(result) = inv(left.as_matrix().unwrap()) {
+                                return Ok(Value::Matrix(result));
+                            }
+                        }
+                    }
+                }
             }
         } else {
             return Err("Non leaf node is not an operator")?;
@@ -489,5 +501,11 @@ mod tests {
         let result = *calculate(infix_exp, &definitions).unwrap().as_scalar().unwrap();
         assert!(result == expected);
 
+        // With inverse
+        let infix_exp = "( A ^ D ) INV";
+        let expected = Matrix::new_from(2, 2, &[&[5.5, -2.5], &[-3.75, 1.75]]).unwrap();
+        let result = calculate(infix_exp, &definitions).unwrap();
+        let result = result.as_matrix().unwrap();
+        assert!(result.equals(&expected));
     }
 }
