@@ -49,31 +49,37 @@ pub fn det(m: &Matrix) -> Result<f32, Box<dyn Error>> {
     if !m.is_squared() || m.m == 0 || m.n == 0 {
         return Err("Bad dimensions")?;
     }
-
-	fn _det_recursivo(m: &Matrix, hidden_rows: &Vec<bool>, hidden_cols: &Vec<bool>, sign_positive: bool) -> f32 {
-		let mut sum = 0.0;
-		let mut hr: Vec<bool> = hidden_rows.clone();
-		let mut hc: Vec<bool> = hidden_cols.clone();
-		let mut math_was_done = false;
-		for i in 0..m.m {
-			if hr[i] { continue; }
-			for j in 0..m.n {
-				if hc[j] { continue; }
-				// Elijo esta esquina
-				hr[i] = true;
-				hc[j] = true;
-				let inner_det: f32 = m[i][j] * _det_recursivo(m, &hr, &hc, !sign_positive);
-				math_was_done = true;
-				sum += inner_det * (if sign_positive {1.0} else {-1.0}) ;
-			}
-		} 
-		if !math_was_done { return 1.0; }
-		return sum;
-	}
-
-	return Ok(_det_recursivo(&m, &vec![false; m.n], &vec![false; m.m], true));
+    return Ok(_det_recursivo(&m, &vec![false; m.n], &vec![false; m.m]));
 }
 
+fn _det_recursivo(m: &Matrix, hidden_rows: &Vec<bool>, hidden_cols: &Vec<bool>) -> f32 {
+    let mut sum = 0.0;
+    let mut sign_positive = true;
+    let mut hr: Vec<bool> = hidden_rows.clone();
+    let mut hc: Vec<bool> = hidden_cols.clone();
+    
+    for i in 0..m.m {
+        if hr[i] { continue; }
+        for j in 0..m.n {
+            if hc[j] { continue; }
+            // Si lo que queda es una submatriz 1x1, devolver ese valor
+            if hr.iter().filter(|&&x| !x).count() == 1 && hc.iter().filter(|&&x| !x).count() == 1 {
+                return m[i][j];
+            }
+            // Elijo esta celda para "tapar" fila y columna
+            hr[i] = true;
+            hc[j] = true;
+            let inner_det = _det_recursivo(m, &hr, &hc);
+            sum += m[i][j] * inner_det * (if sign_positive {1.0} else {-1.0}) ;
+            sign_positive = !sign_positive;
+            // Destapo antes de seguir
+            hr[i] = false;
+            hc[j] = false;
+        }
+        break;
+    }
+    return sum;
+}
 
 pub fn id_matrix(n: usize) -> Result<Matrix, Box<dyn Error>> {
     let mut res: Matrix = Matrix::new_empty(n, n);
@@ -179,6 +185,10 @@ mod tests {
 
     #[test]
     fn determinant() {
+        let m = Matrix::new_from(2, 2, &[&[6.0, 7.0], &[-2.0, 8.0]]).unwrap();
+        assert_eq!(math::det(&m).unwrap(), 62.0);
+        let m:Matrix=Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
+        assert_eq!(math::det(&m).unwrap(), 30.0);
         let m = create2by2();
         assert_eq!(math::det(&m).unwrap(), -2.0);
     }
