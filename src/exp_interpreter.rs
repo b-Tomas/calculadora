@@ -152,7 +152,7 @@ impl<'a> ExpTree<'a> {
     }
 
     // Will return either a number or matrix as a result
-    pub fn solve(&self) -> Result<Value, Box<dyn Error>> {
+    fn solve(&self) -> Result<Value, Box<dyn Error>> {
         if self.is_leaf() {
             if self.op().is_operation() {
                 return Err("Leaf node has operator as only data")?;
@@ -295,13 +295,16 @@ fn is_operator(key: &str) -> bool {
     OP_PRECEDENCE.contains_key(key)
 }
 
-fn in_hashmap_keys<V>(key: &str, map: &HashMap<&str, V>) -> bool {
-    map.keys().find(|&&x| *x == *key).is_some()
+// Struct that holds the currently declared variables 
+pub struct Definitions(pub HashMap<String, Value>);
+
+fn in_variable_defintions(key: &str, map: &Definitions) -> bool {
+    map.0.keys().find(|&x| *x == *key).is_some()
 }
 
 fn infix_to_postfix<'a>(
     infix_exp: &'a Vec<&'a str>,
-    definitions: &'a HashMap<&'a str, Matrix>,
+    definitions: &'a Definitions,
 ) -> Vec<&'a str> {
     let mut stack: Vec<&str> = Vec::new();
 
@@ -318,7 +321,7 @@ fn infix_to_postfix<'a>(
             }
         }
         // If number or declared variable
-        else if elem.trim().parse::<f32>().is_ok() || in_hashmap_keys(elem, definitions) {
+        else if elem.trim().parse::<f32>().is_ok() || in_variable_defintions(elem, definitions) {
             postfix.push(elem);
         }
         // If number is operator
@@ -344,7 +347,7 @@ fn infix_to_postfix<'a>(
 
 fn postfix_to_tree<'a>(
     postfix_exp: &'a Vec<&'a str>,
-    definitions: &'a HashMap<&'a str, Matrix>,
+    definitions: &'a Definitions
 ) -> Option<ExpTree<'a>> {
     let mut stack: Vec<ExpTree> = Vec::new();
 
@@ -352,8 +355,12 @@ fn postfix_to_tree<'a>(
         // If operand
         if let Some(num) = elem.trim().parse::<f32>().ok() {
             stack.push(ExpTree::new(Operand::Scalar(num)))
-        } else if let Some(mat) = definitions.get(elem) {
-            stack.push(ExpTree::new(Operand::Matrix(mat)))
+        } else if let Some(val) = definitions.0.get(*elem) {
+            if let Some(num) = val.as_scalar() {
+                stack.push(ExpTree::new(Operand::Scalar(*num)))
+            } else if let Some(mat) = val.as_matrix() {
+                stack.push(ExpTree::new(Operand::Matrix(mat)))
+            }
         }
         // If operator
         else if let Some(operand) = OPERATIONS.get(elem) {
@@ -392,7 +399,7 @@ fn postfix_to_tree<'a>(
     return None;
 }
 
-pub fn calculate(infix_exp: &str, definitions: &HashMap<&str, Matrix>) -> Result<Value, Box<(dyn std::error::Error)>> {
+pub fn calculate(infix_exp: &str, definitions: &Definitions) -> Result<Value, Box<(dyn std::error::Error)>> {
     if let Some(tree) = postfix_to_tree(&infix_to_postfix(&Vec::from_iter(infix_exp.split(' ').into_iter()), definitions), definitions) {
         return tree.solve()
     } else {
@@ -414,14 +421,15 @@ mod tests {
 
     #[test]
     fn test_infix_to_postfix() {
-        let infix: Vec<&str> = "2 + ( ( A + B ) * ( C ^ 2 ) T )".split(' ').collect();
-        let postfix: Vec<&str> = "2 A B + C 2 ^ T * +".split(' ').collect();
+        let infix: Vec<&str> = "2 + ( ( A + B ) * ( C ^ D ) T )".split(' ').collect();
+        let postfix: Vec<&str> = "2 A B + C D ^ T * +".split(' ').collect();
 
-        let definitions: HashMap<&str, Matrix> = HashMap::from([
-            ("A", Matrix::new_empty(1, 1)),
-            ("B", Matrix::new_empty(1, 1)),
-            ("C", Matrix::new_empty(1, 1)),
-        ]);
+        let definitions = Definitions(HashMap::from([
+            (String::from("A"), Value::Matrix(Matrix::new_empty(1, 1))),
+            (String::from("B"), Value::Matrix(Matrix::new_empty(1, 1))),
+            (String::from("C"), Value::Matrix(Matrix::new_empty(1, 1))),
+            (String::from("D"), Value::Scalar(2.0)),
+        ]));
 
         assert!(do_vecs_match(
             &infix_to_postfix(&infix, &definitions),
@@ -431,13 +439,14 @@ mod tests {
 
     #[test]
     fn test_postfix_to_tree() {
-        let postfix: Vec<&str> = "2 A B + C 2 ^ T * +".split(' ').collect();
+        let postfix: Vec<&str> = "2 A B + C D ^ T * +".split(' ').collect();
 
-        let definitions: HashMap<&str, Matrix> = HashMap::from([
-            ("A", Matrix::new_empty(1, 1)),
-            ("B", Matrix::new_empty(1, 1)),
-            ("C", Matrix::new_empty(1, 1)),
-        ]);
+        let definitions = Definitions(HashMap::from([
+            (String::from("A"), Value::Matrix(Matrix::new_empty(1, 1))),
+            (String::from("B"), Value::Matrix(Matrix::new_empty(1, 1))),
+            (String::from("C"), Value::Matrix(Matrix::new_empty(1, 1))),
+            (String::from("D"), Value::Scalar(2.0)),
+        ]));
 
         let tree = postfix_to_tree(&postfix, &definitions).unwrap();
         assert_eq!(tree.op().as_operation(), Some(&Operators::Sum));
@@ -451,30 +460,31 @@ mod tests {
     fn test_solve() {
         // TODO: test every operation
         let expected = Matrix::new_from(2, 2, &[&[12.5, 6.5], &[23.25, 12.0]]).unwrap();
-        
-        let definitions: HashMap<&str, Matrix> = HashMap::from([
-            ("A", Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap()),
-            ("B", Matrix::new_from(2, 2, &[&[3.0, 4.0], &[5.0, 6.0]]).unwrap()),
-            ("C", Matrix::new_from(2, 2, &[&[1.25, 0.5], &[0.5, 0.5]]).unwrap()),
-        ]);    
+
+        let definitions = Definitions(HashMap::from([
+            (String::from("A"), Value::Matrix(Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap())),
+            (String::from("B"), Value::Matrix(Matrix::new_from(2, 2, &[&[3.0, 4.0], &[5.0, 6.0]]).unwrap())),
+            (String::from("C"), Value::Matrix(Matrix::new_from(2, 2, &[&[1.25, 0.5], &[0.5, 0.5]]).unwrap())),
+            (String::from("D"), Value::Scalar(2.0)),
+        ]));
         
         // Power
         assert!(*calculate("4 ^ 3", &definitions).unwrap().as_scalar().unwrap() == 64.0);
         
         // A complex expression
-        let infix_exp = "( A + B ) * ( C ^ 2 ) T";
+        let infix_exp = "( A + B ) * ( C ^ D ) T";
         let result = calculate(infix_exp, &definitions).unwrap();
         let matrix = result.as_matrix().unwrap();
         assert!(matrix.equals(&expected));
 
         // With determinant
-        let infix_exp = "( C ^ 2 ) T DET";
+        let infix_exp = "( C ^ D ) T DET";
         let expected = 9.0/64.0;
         let result = *calculate(infix_exp, &definitions).unwrap().as_scalar().unwrap();
         assert!(result == expected);
 
         // Even more complex
-        let infix_exp = "( A + B ) * ( C ^ 2 ) T DET";
+        let infix_exp = "( ( A + B ) * ( C ^ D ) T ) DET";
         let expected = -9.0/8.0;
         let result = *calculate(infix_exp, &definitions).unwrap().as_scalar().unwrap();
         assert!(result == expected);
