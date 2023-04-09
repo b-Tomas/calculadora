@@ -1,5 +1,5 @@
 use crate::structs::Matrix;
-use std::error::Error;
+use std::{error::Error, convert::identity, process::id};
 
 pub fn sum(ma: &Matrix, mb: &Matrix) -> Result<Matrix, Box<dyn Error>> {
     if ma.m != mb.m || ma.n != mb.n {
@@ -19,13 +19,7 @@ pub fn sub(ma: &Matrix, mb: &Matrix) -> Result<Matrix, Box<dyn Error>> {
         return Err("bad dimensions")?;
     }
     let mb = &mul_scalar(mb, -1.0);
-    let mut mc = Matrix::new_empty(ma.m, ma.n);
-    for i in 0..ma.n {
-        for j in 0..ma.m {
-            mc.set(i, j, ma[i][j] + mb[i][j]);
-        }
-    }
-    return Ok(mc);
+    return sum(ma, mb);
 }
 
 pub fn mul(m1: &Matrix, m2: &Matrix) -> Result<Matrix, Box<dyn Error>> {
@@ -45,6 +39,25 @@ pub fn mul(m1: &Matrix, m2: &Matrix) -> Result<Matrix, Box<dyn Error>> {
         }
     }
 
+    return Ok(res);
+}
+
+pub fn pow(mat: &Matrix, exp: i8) -> Result<Matrix, Box<dyn Error>> {
+    if !mat.is_squared() {
+        return Err("Bad dimensions")?;
+    } else if exp == 0 {
+        return Ok(id_matrix(mat.n));
+    } else if exp == 1 {
+        return Ok(mat.clone());
+    }
+    let mut res = mat.clone();
+    for _ in 1..exp {
+        if let Ok(_res) = mul(&res, &mat) {
+            res = _res;
+        } else {
+            return Err("Bad dimensions")?;
+        }
+    }
     return Ok(res);
 }
 
@@ -88,12 +101,12 @@ pub fn det(m: &Matrix) -> Result<f32, Box<dyn Error>> {
 	return Ok(_det_recursivo(&m, &vec![false; m.n], &vec![false; m.m], true));
 }
 
-pub fn id_matrix(n: usize) -> Result<Matrix, Box<dyn Error>> {
+pub fn id_matrix(n: usize) -> Matrix {
     let mut res: Matrix = Matrix::new_empty(n, n);
     for i in 0..n {
         res.set(i, i, 1.0);
     }
-    return Ok(res);
+    return res;
 }
 
 pub fn transp_squared_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
@@ -139,7 +152,7 @@ pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{math, structs::Matrix};
+    use crate::{math::{self, pow, id_matrix}, structs::Matrix};
 
     fn create2by2() -> Matrix {
         return Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
@@ -217,23 +230,32 @@ mod tests {
         assert_eq!(res[1][1], 1.0);
     }
 
-    #[test] // test for identity matrix
+    #[test]
     fn test_id() {
         let n: usize = 3;
-        let res: Matrix = math::id_matrix(n).unwrap();
-
+        let res: Matrix = math::id_matrix(n);
+        
         assert_eq!(res[0][0], 1.0);
         assert_eq!(res[1][1], 1.0);
         assert_eq!(res[2][2], 1.0);
     }
-    #[test] //test for transposed matrix
+
+    #[test]
     fn test_trasp() {
         let m: Matrix = Matrix::new_from(2, 2, &[&[2.0, -1.0], &[3.0, 6.0]]).unwrap();
         let res: Matrix = math::transp_squared_matrix(&m).unwrap();
-
+        
         assert_eq!(res[0][0], 2.0);
         assert_eq!(res[0][1], 3.0);
         assert_eq!(res[1][0], -1.0);
         assert_eq!(res[1][1], 6.0);
+    }
+
+    #[test]
+    fn mat_pow() {
+        let mat = create2by2();
+        assert!(pow(&mat, 0).unwrap().equals(&id_matrix(2)));
+        assert!(pow(&mat, 1).unwrap().equals(&mat));
+        assert!(pow(&mat, 2).unwrap().equals(&Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 22.0]]).unwrap()));
     }
 }

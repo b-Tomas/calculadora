@@ -41,7 +41,11 @@ impl Matrix {
         });
     }
 
-    pub fn equals(&self, other: Matrix) -> bool {
+    pub fn fill(&mut self, num: f32) {
+        self.data = vec![vec![num; self.n]; self.n]
+    }
+
+    pub fn equals(&self, other: &Matrix) -> bool {
         if self.m != other.m || self.n != other.n {
             return false;
         }
@@ -116,8 +120,8 @@ mod tests {
     fn equals() {
         let m1 = create2by2();
         let m2 = create2by2();
-        assert!(m1.equals(m2));
+        assert!(m1.equals(&m2));
         let m3 = Matrix::new_from(2, 3, &[&[1.0, 2.0, 3.0], &[3.0, 4.0, 3.0]]).unwrap();
-        assert!(!m1.equals(m3));
+        assert!(!m1.equals(&m3));
     }
 }
