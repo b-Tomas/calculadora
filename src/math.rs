@@ -1,5 +1,5 @@
 use crate::structs::Matrix;
-use std::error::Error;
+use std::{error::Error, convert::identity, process::id};
 
 pub fn sum(ma: &Matrix, mb: &Matrix) -> Result<Matrix, Box<dyn Error>> {
     if ma.m != mb.m || ma.n != mb.n {
@@ -12,6 +12,14 @@ pub fn sum(ma: &Matrix, mb: &Matrix) -> Result<Matrix, Box<dyn Error>> {
         }
     }
     return Ok(mc);
+}
+
+pub fn sub(ma: &Matrix, mb: &Matrix) -> Result<Matrix, Box<dyn Error>> {
+    if ma.m != mb.m || ma.n != mb.n {
+        return Err("bad dimensions")?;
+    }
+    let mb = &mul_scalar(mb, -1.0);
+    return sum(ma, mb);
 }
 
 pub fn mul(m1: &Matrix, m2: &Matrix) -> Result<Matrix, Box<dyn Error>> {
@@ -31,6 +39,25 @@ pub fn mul(m1: &Matrix, m2: &Matrix) -> Result<Matrix, Box<dyn Error>> {
         }
     }
 
+    return Ok(res);
+}
+
+pub fn pow(mat: &Matrix, exp: i8) -> Result<Matrix, Box<dyn Error>> {
+    if !mat.is_squared() {
+        return Err("Bad dimensions")?;
+    } else if exp == 0 {
+        return Ok(id_matrix(mat.n));
+    } else if exp == 1 {
+        return Ok(mat.clone());
+    }
+    let mut res = mat.clone();
+    for _ in 1..exp {
+        if let Ok(_res) = mul(&res, &mat) {
+            res = _res;
+        } else {
+            return Err("Bad dimensions")?;
+        }
+    }
     return Ok(res);
 }
 
@@ -81,12 +108,12 @@ fn _det_recursivo(m: &Matrix, hidden_rows: &Vec<bool>, hidden_cols: &Vec<bool>) 
     return sum;
 }
 
-pub fn id_matrix(n: usize) -> Result<Matrix, Box<dyn Error>> {
+pub fn id_matrix(n: usize) -> Matrix {
     let mut res: Matrix = Matrix::new_empty(n, n);
     for i in 0..n {
         res.set(i, i, 1.0);
     }
-    return Ok(res);
+    return res;
 }
 
 pub fn transp_squared_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
@@ -132,7 +159,7 @@ pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{math, structs::Matrix};
+    use crate::{math::{self, pow, id_matrix}, structs::Matrix};
 
     fn create2by2() -> Matrix {
         return Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
@@ -164,15 +191,13 @@ mod tests {
         assert_eq!(res[1][0], 32.0);
     }
 
-    #[test] //this test should return when the matrix sum is not possible
-    fn matrix_sum_err() {
+    #[test]
+    fn matrix_sum() {
         let m1 = Matrix::new_from(2, 3, &[&[1.0, 2.0, 3.0], &[3.0, 4.0, 3.0]]).unwrap();
         let m2 = create2by2();
-        math::sum(&m1, &m2).unwrap_err(); // fail
-    }
+        let _err = math::sum(&m1, &m2).unwrap_err(); // This should be an error. Otherwise it will panic
 
-    #[test] //this test should return that the matrix sum is correct
-    fn matrix_sum_ok() {
+        // Let's test an actual sum
         let m1 = create2by2();
         let m2 = create2by2();
         let res = math::sum(&m1, &m2).unwrap();
@@ -181,6 +206,18 @@ mod tests {
         assert_eq!(res[0][1], 4.0);
         assert_eq!(res[1][0], 6.0);
         assert_eq!(res[1][1], 8.0);
+    }
+
+    #[test]
+    fn matrix_sub() {
+        let m1 = create2by2();
+        let m2 = create2by2();
+        let res = math::sub(&m1, &m2).unwrap();
+
+        assert_eq!(res[0][0], 0.0);
+        assert_eq!(res[0][1], 0.0);
+        assert_eq!(res[1][0], 0.0);
+        assert_eq!(res[1][1], 0.0);
     }
 
     #[test]
@@ -204,23 +241,32 @@ mod tests {
         assert_eq!(res[1][1], 1.0);
     }
 
-    #[test] // test for identity matrix
+    #[test]
     fn test_id() {
         let n: usize = 3;
-        let res: Matrix = math::id_matrix(n).unwrap();
-
+        let res: Matrix = math::id_matrix(n);
+        
         assert_eq!(res[0][0], 1.0);
         assert_eq!(res[1][1], 1.0);
         assert_eq!(res[2][2], 1.0);
     }
-    #[test] //test for transposed matrix
+
+    #[test]
     fn test_trasp() {
         let m: Matrix = Matrix::new_from(2, 2, &[&[2.0, -1.0], &[3.0, 6.0]]).unwrap();
         let res: Matrix = math::transp_squared_matrix(&m).unwrap();
-
+        
         assert_eq!(res[0][0], 2.0);
         assert_eq!(res[0][1], 3.0);
         assert_eq!(res[1][0], -1.0);
         assert_eq!(res[1][1], 6.0);
+    }
+
+    #[test]
+    fn mat_pow() {
+        let mat = create2by2();
+        assert!(pow(&mat, 0).unwrap().equals(&id_matrix(2)));
+        assert!(pow(&mat, 1).unwrap().equals(&mat));
+        assert!(pow(&mat, 2).unwrap().equals(&Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 22.0]]).unwrap()));
     }
 }
