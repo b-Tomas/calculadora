@@ -218,7 +218,7 @@ impl<'a> ExpTree<'a> {
                         if let (Ok(left), Ok(right)) = (left.solve(), right.solve()) {
                             // Left can be both, right always scalar
                             if let (Some(left), Some(right)) = (left.as_scalar(), right.as_scalar()) {
-                                return Ok(Value::Scalar(left ** right));
+                                return Ok(Value::Scalar(left.powf(*right)));
                             } else if let (Some(left), Some(right)) = (left.as_matrix(), right.as_scalar()) {
                                 if let Ok(result) = pow(left, *right as i8) {
                                     return Ok(Value::Matrix(result));
@@ -268,7 +268,7 @@ static OPERATIONS: Map<&str, Operators> = phf_map! {
     "/"   => Operators::Div,
     "*"   => Operators::Mul,
     "^"   => Operators::Pow,
-    "V"   => Operators::Inv,
+    "INV"   => Operators::Inv,
     "T"   => Operators::Transp,
     "DET" => Operators::Det,
 };
@@ -279,13 +279,13 @@ static OP_PRECEDENCE: Map<&str, usize> = phf_map! {
     "/" => 2,
     "*" => 1,
     "^" => 3,
-    "V" => 3,
+    "INV" => 3,
     "T" => 3,
 };
 
 // All operations are binary unless specified here
 static UNARY_OPS: Map<&str, bool> = phf_map! {
-    "V" => true,
+    "INV" => true,
     "T" => true,
     "DET" => true,
 };
@@ -449,24 +449,28 @@ mod tests {
     #[test]
     fn test_solve() {
         // TODO: test every operation
-        let infix_exp = "( A + B ) * ( C ^ 2 ) T";
         let expected = Matrix::new_from(2, 2, &[&[12.5, 6.5], &[23.25, 12.0]]).unwrap();
-
+        
         let definitions: HashMap<&str, Matrix> = HashMap::from([
             ("A", Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap()),
             ("B", Matrix::new_from(2, 2, &[&[3.0, 4.0], &[5.0, 6.0]]).unwrap()),
             ("C", Matrix::new_from(2, 2, &[&[1.25, 0.5], &[0.5, 0.5]]).unwrap()),
         ]);    
-
+        
+        // Power
+        assert!(*calculate("4 ^ 3", &definitions).unwrap().as_scalar().unwrap() == 64.0);
+        
+        // A complex expression
+        let infix_exp = "( A + B ) * ( C ^ 2 ) T";
         let result = calculate(infix_exp, &definitions).unwrap();
         let matrix = result.as_matrix().unwrap();
-
         assert!(matrix.equals(&expected));
 
+        // With determinant
         let infix_exp = "( A + B ) * ( C ^ 2 ) T DET";
         let expected = -9.0/8.0;
-
         let result = *calculate(infix_exp, &definitions).unwrap().as_scalar().unwrap();
         assert!(result == expected);
+
     }
 }
