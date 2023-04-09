@@ -1,13 +1,12 @@
 use phf::{phf_map, Map};
 
 // Tools for interpreting and calculating expressions
+use std::{collections::{HashMap}, error::Error};
 
-use std::{collections::{HashMap, btree_set::Union}, mem::ManuallyDrop};
-
-use crate::structs::Matrix;
+use crate::{structs::Matrix, math::{mul_scalar, mul, sum, sub, pow, transp_squared_matrix, det}};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Operations {
+pub enum Operators {
     Mul,
     Div,
     Sum,
@@ -19,9 +18,48 @@ enum Operations {
 }
 
 pub enum Operand<'a> {
-    Operation(Operations),
+    Operation(Operators),
     Scalar(f32),
     Matrix(&'a Matrix),
+}
+
+pub enum Value {
+    Scalar(f32),
+    Matrix(Matrix),
+}
+
+impl Value {
+    pub fn as_scalar(&self) -> Option<&f32> {
+        if let Self::Scalar(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_matrix(&self) -> Option<&Matrix> {
+        if let Self::Matrix(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    /// Returns `true` if the value is [`Scalar`].
+    ///
+    /// [`Scalar`]: Value::Scalar
+    #[must_use]
+    pub fn is_scalar(&self) -> bool {
+        matches!(self, Self::Scalar(..))
+    }
+
+    /// Returns `true` if the value is [`Matrix`].
+    ///
+    /// [`Matrix`]: Value::Matrix
+    #[must_use]
+    pub fn is_matrix(&self) -> bool {
+        matches!(self, Self::Matrix(..))
+    }
 }
 
 impl<'a> Operand<'a> {
@@ -49,7 +87,7 @@ impl<'a> Operand<'a> {
         matches!(self, Self::Matrix(..))
     }
 
-    pub fn as_operation(&self) -> Option<&Operations> {
+    pub fn as_operation(&self) -> Option<&Operators> {
         if let Self::Operation(v) = self {
             Some(v)
         } else {
@@ -109,20 +147,130 @@ impl<'a> ExpTree<'a> {
         self.op = op;
     }
 
-    pub fn is_leaf(self) -> bool {
+    pub fn is_leaf(&self) -> bool {
         return self.left_op().is_none() && self.right_op().is_none();
+    }
+
+    // Will return either a number or matrix as a result
+    pub fn solve(&self) -> Result<Value, Box<dyn Error>> {
+        if self.is_leaf() {
+            if self.op().is_operation() {
+                return Err("Leaf node has operator as only data")?;
+            }
+            if let Some(value) = self.op().as_scalar() {
+                return Ok(Value::Scalar(*value));
+            } else if let Some(value) = self.op().as_matrix() {
+                return Ok(Value::Matrix(value.clone().to_owned()));
+            }
+        }
+        
+        if let Some(operator) = self.op().as_operation() {
+            match *operator {
+                Operators::Mul => {
+                    if let (Some(left), Some(right)) = (self.left_op(), self.right_op()) {
+                        if let (Ok(left), Ok(right)) = (left.solve(), right.solve()) {
+                            // Left and right are scalars, left is matrix and the other scalar, the other way around, or both are matrices
+                            if let (Some(left), Some(right)) = (left.as_scalar(), right.as_scalar()) {
+                                return Ok(Value::Scalar(left * right));
+                            } else if let (Some(left), Some(right)) = (left.as_scalar(), right.as_matrix()) {
+                                return Ok(Value::Matrix(mul_scalar(right, *left)));
+                            } else if let (Some(left), Some(right)) = (left.as_matrix(), right.as_scalar()) {
+                                return Ok(Value::Matrix(mul_scalar(left, *right)));
+                            } else if let (Some(left), Some(right)) = (left.as_matrix(), right.as_matrix()) {
+                                if let Ok(result) = mul(left, right) {
+                                    return Ok(Value::Matrix(result));
+                                }
+                            }
+                        }
+                    }
+                },
+                Operators::Div => todo!(), // TODO: Depends on matrix inverse
+                Operators::Sum => {
+                    if let (Some(left), Some(right)) = (self.left_op(), self.right_op()) {
+                        if let (Ok(left), Ok(right)) = (left.solve(), right.solve()) {
+                            // Left and right are scalars, or both are matrices
+                            if let (Some(left), Some(right)) = (left.as_scalar(), right.as_scalar()) {
+                                return Ok(Value::Scalar(left + right));
+                            } else if let (Some(left), Some(right)) = (left.as_matrix(), right.as_matrix()) {
+                                if let Ok(result) = sum(left, right) {
+                                    return Ok(Value::Matrix(result));
+                                }
+                            }
+                        }
+                    }
+                },
+                Operators::Sub => {
+                    if let (Some(left), Some(right)) = (self.left_op(), self.right_op()) {
+                        if let (Ok(left), Ok(right)) = (left.solve(), right.solve()) {
+                            // Left and right are scalars, or both are matrices
+                            if let (Some(left), Some(right)) = (left.as_scalar(), right.as_scalar()) {
+                                return Ok(Value::Scalar(left - right));
+                            } else if let (Some(left), Some(right)) = (left.as_matrix(), right.as_matrix()) {
+                                if let Ok(result) = sub(left, right) {
+                                    return Ok(Value::Matrix(result));
+                                }
+                            }
+                        }
+                    }
+                },
+                Operators::Pow => {
+                    if let (Some(left), Some(right)) = (self.left_op(), self.right_op()) {
+                        if let (Ok(left), Ok(right)) = (left.solve(), right.solve()) {
+                            // Left can be both, right always scalar
+                            if let (Some(left), Some(right)) = (left.as_scalar(), right.as_scalar()) {
+                                return Ok(Value::Scalar(left ** right));
+                            } else if let (Some(left), Some(right)) = (left.as_matrix(), right.as_scalar()) {
+                                if let Ok(result) = pow(left, *right as i8) {
+                                    return Ok(Value::Matrix(result));
+                                }
+                            }
+                        }
+                    }
+                }
+                Operators::Transp => {
+                    if self.right_op().is_some() {
+                        return Err("Operador unario tiene dos operandos")?;
+                    } else if let Some(left) = self.left_op() {
+                        if let Ok(left) = left.solve() {
+                            if left.is_scalar() {
+                                return Err("No se puede aplicar la operacion Transponer a un escalar")?;
+                            } else if let Ok(result) = transp_squared_matrix(left.as_matrix().unwrap()) {
+                                return Ok(Value::Matrix(result));
+                            }
+                        }
+                    }
+                }
+                Operators::Det => {
+                    if self.right_op().is_some() {
+                        return Err("Operador unario tiene dos operandos")?;
+                    } else if let Some(left) = self.left_op() {
+                        if let Ok(left) = left.solve() {
+                            if left.is_scalar() {
+                                return Err("No se puede aplicar la operacion Determinante a un escalar")?;
+                            } else if let Ok(result) = det(left.as_matrix().unwrap()) {
+                                return Ok(Value::Scalar(result));
+                            }
+                        }
+                    }
+                }
+                Operators::Inv => todo!(), // TODO: Depends on matrix inverse
+            }
+        } else {
+            return Err("Non leaf node is not an operator")?;
+        }
+        return Err("Something happened")?;
     }
 }
 
-static OPERATIONS: Map<&str, Operations> = phf_map! {
-    "+" => Operations::Sum,
-    "-" => Operations::Sub,
-    "/" => Operations::Div,
-    "*" => Operations::Mul,
-    "^" => Operations::Pow,
-    "V" => Operations::Inv,
-    "T" => Operations::Transp,
-    "DET" => Operations::Det,
+static OPERATIONS: Map<&str, Operators> = phf_map! {
+    "+"   => Operators::Sum,
+    "-"   => Operators::Sub,
+    "/"   => Operators::Div,
+    "*"   => Operators::Mul,
+    "^"   => Operators::Pow,
+    "V"   => Operators::Inv,
+    "T"   => Operators::Transp,
+    "DET" => Operators::Det,
 };
 
 static OP_PRECEDENCE: Map<&str, usize> = phf_map! {
@@ -243,6 +391,14 @@ fn postfix_to_tree<'a>(
     return None;
 }
 
+pub fn calculate(infix_exp: &str, definitions: &HashMap<&str, Matrix>) -> Result<Value, Box<(dyn std::error::Error)>> {
+    if let Some(tree) = postfix_to_tree(&infix_to_postfix(&Vec::from_iter(infix_exp.split(' ').into_iter()), definitions), definitions) {
+        return tree.solve()
+    } else {
+        return Err("Parsing error")?;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -283,11 +439,34 @@ mod tests {
         ]);
 
         let tree = postfix_to_tree(&postfix, &definitions).unwrap();
-        assert!(tree.op().is_operation());
-        assert_eq!(tree.op().as_operation(), Some(&Operations::Sum));
+        assert_eq!(tree.op().as_operation(), Some(&Operators::Sum));
         assert_eq!(tree.left_op().as_ref().unwrap().op().as_scalar(), Some(&2.0));
-        assert_eq!(tree.right_op().as_ref().unwrap().op().as_operation(), Some(&Operations::Mul));
-        assert_eq!(tree.right_op().as_ref().unwrap().left_op().as_ref().unwrap().op().as_operation(), Some(&Operations::Sum));
+        assert_eq!(tree.right_op().as_ref().unwrap().op().as_operation(), Some(&Operators::Mul));
+        assert_eq!(tree.right_op().as_ref().unwrap().left_op().as_ref().unwrap().op().as_operation(), Some(&Operators::Sum));
         // Me cansé, pero creo que anda bien
+    }
+
+    #[test]
+    fn test_solve() {
+        // TODO: test every operation
+        let infix_exp = "( A + B ) * ( C ^ 2 ) T";
+        let expected = Matrix::new_from(2, 2, &[&[12.5, 6.5], &[23.25, 12.0]]).unwrap();
+
+        let definitions: HashMap<&str, Matrix> = HashMap::from([
+            ("A", Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap()),
+            ("B", Matrix::new_from(2, 2, &[&[3.0, 4.0], &[5.0, 6.0]]).unwrap()),
+            ("C", Matrix::new_from(2, 2, &[&[1.25, 0.5], &[0.5, 0.5]]).unwrap()),
+        ]);    
+
+        let result = calculate(infix_exp, &definitions).unwrap();
+        let matrix = result.as_matrix().unwrap();
+
+        assert!(matrix.equals(&expected));
+
+        let infix_exp = "( A + B ) * ( C ^ 2 ) T DET";
+        let expected = -9.0/8.0;
+
+        let result = *calculate(infix_exp, &definitions).unwrap().as_scalar().unwrap();
+        assert!(result == expected);
     }
 }
