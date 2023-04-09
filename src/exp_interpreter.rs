@@ -484,7 +484,7 @@ mod tests {
         assert!(result == expected);
 
         // Even more complex
-        let infix_exp = "( A + B ) * ( C ^ 2 ) T DET";
+        let infix_exp = "( ( A + B ) * ( C ^ D ) T ) DET";
         let expected = -9.0/8.0;
         let result = *calculate(infix_exp, &definitions).unwrap().as_scalar().unwrap();
         assert!(result == expected);
