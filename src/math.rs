@@ -304,7 +304,7 @@ pub fn solve_system(matrix: &Matrix) -> Compatibility {
 
 #[cfg(test)]
 mod tests {
-    use crate::{math::{self, pow, id_matrix, Compatibility}, structs::Matrix};
+    use crate::{math::{self, pow, id_matrix, Compatibility, transp_squared_matrix, adj, inv}, structs::Matrix};
 
     fn create2by2() -> Matrix {
         return Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
@@ -387,7 +387,6 @@ mod tests {
         assert_eq!(math::det(&m).unwrap(), 30.0);
     }
 
-
     #[test]
     fn orthogonal_test() {
         let m = Matrix::new_from(2, 2, &[&[1.0, -1.0], &[1.0, 1.0]]).unwrap();
@@ -427,7 +426,7 @@ mod tests {
         assert!(pow(&mat, 2).unwrap().equals(&Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 22.0]]).unwrap()));
     }
 
-    #[test] //test for ad matrix
+    #[test]
     fn test_adj() {
         let m: Matrix = Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
         let res: Matrix = math::adj(&m).unwrap();
@@ -451,7 +450,7 @@ mod tests {
     #[test]
     fn inverse_test() {
         let m: Matrix = Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
-        let res: Matrix = math::inv(&m).unwrap();
+        let res: Matrix = inv(&m).unwrap();
         let e:f32=0.0001;
 
         assert!((res[0][0] - 31.00/15.00).abs()<e);
@@ -469,6 +468,7 @@ mod tests {
         let expected = Matrix::new_from(2, 2, &[&[5.5, -2.5], &[-3.75, 1.75]]).unwrap();
         assert!(res.equals(&expected));
     }
+
     #[test]
     fn Compatible_determinado(){
         let m: Matrix = Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
@@ -486,6 +486,7 @@ mod tests {
         let result = math::solve_system(&total);
         assert!(result == Compatibility::Incompatible);
     }
+
     #[test]
     fn very_incompatible() {
         let m: Matrix= Matrix::new_from(3,4,&[&[1.0, 1.0, 1.0, 4.0], &[2.0, 2.0, 2.0, 8.0], &[3.0, 3.0, 3.0, 45.0]]).unwrap();
