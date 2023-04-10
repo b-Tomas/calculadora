@@ -1,5 +1,7 @@
 # Calculadora con Matrices
 
+> Autores: Tomás Badenes y Santiago Fernandez
+
 ![Video de demostracion](doc-assets/demo.gif)
 
 ## Descripción
