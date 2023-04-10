@@ -1,4 +1,4 @@
-# Calculadora para álgebra lineal
+# Calculadora con Matrices
 
 ![Video de demostracion](doc-assets/demo.gif)
 
@@ -77,6 +77,10 @@ La variable `E` no está definida
 
 Estos identificadores pueden luego ser utilizados en las expresiones `ecu`
 
+### Sistemas de ecuaciones
+
+Mediante el comando `ecsis` se puede ingresar un sistema de ecuaciones en la forma de la matriz expandida en el vector resultado (A|b) para determinar si este tiene solución o no.
+
 ## Utilización
 
 ### Instalación desde código fuente
@@ -101,29 +105,30 @@ cargo build
 
 ```
 $ cargo test
-running 20 tests
-test exp_interpreter::tests::test_infix_to_postfix ... ok
+running 21 tests
 test exp_interpreter::tests::test_postfix_to_tree ... ok
+test exp_interpreter::tests::test_infix_to_postfix ... ok
+test math::tests::compatible_determinado ... ok
+test math::tests::identity_matrix ... ok
 test math::tests::determinant ... ok
-test math::tests::determinant2x2 ... ok
-test math::tests::determinant3x3 ... ok
+test math::tests::incompatible_equation ... ok
+test math::tests::mat_pow ... ok
 test math::tests::matrix_multiplication ... ok
 test math::tests::inverse_test ... ok
-test math::tests::mat_pow ... ok
-test math::tests::matrix_sum ... ok
-test math::tests::mul_mat_scalar ... ok
-test exp_interpreter::tests::test_solve ... ok
 test math::tests::matrix_sub ... ok
-test math::tests::orthogonal_test ... ok
-test math::tests::test_id ... ok
-test math::tests::test_trasp ... ok
+test math::tests::matrix_sum ... ok
+test math::tests::multiplication_by_scalar ... ok
+test math::tests::transposed ... ok
+test exp_interpreter::tests::test_solve ... ok
+test math::tests::test_adj ... ok
+test math::tests::undetermined ... ok
+test math::tests::very_incompatible ... ok
 test structs::tests::create_empty_matrix ... ok
 test structs::tests::create_matrix_from_data ... ok
-test math::tests::test_adj ... ok
 test structs::tests::equals ... ok
 test structs::tests::is_squared ... ok
 
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 ```
 
 5. Inicie el programa:
@@ -134,7 +139,7 @@ cargo run
 
 ### Instalación de binarios
 
-Dado que ambos desarrolladores somos usarios diarios de Linux, decidimos no liberar binarios para Windows o MacOS, y ya que la instalación mediante código fuente es tan simple, tampoco lo hicimos para Linux.
+Visite la página de [releases](https://github.com/b-Tomas/calculadora/releases) para descargar el programa compilado para su plataforma, aunque se recomienda instalar de código fuente para tener disponible la última versión del programa.
 
 ## Acerca de las soluciones
 
