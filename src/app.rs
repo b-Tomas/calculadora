@@ -1,6 +1,6 @@
 use std::{io::{self, stdin, stdout, Write}, collections::HashMap, error::Error, num::ParseFloatError};
 
-use crate::{exp_interpreter::{Definitions, Value, calculate}, structs::Matrix};
+use crate::{exp_interpreter::{Definitions, Value, calculate}, structs::Matrix, math};
 
 pub struct App {
     definitions: Definitions,
@@ -20,7 +20,7 @@ impl App {
     pub fn start(&mut self) -> io::Result<()> {
         // Clear screen
         print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-
+        greeting();
         loop {
             let mut user_input = String::new();
             prompt(&mut user_input)?;
@@ -33,6 +33,7 @@ impl App {
                 "var" => declare_var(elements.as_slice(), &mut self.definitions),
                 "mostrar" => show_var(elements.as_slice(), &mut self.definitions),
                 "ecu" => solve_equation(elements.as_slice(), &self.definitions),
+                "ecsis" => system_solve(),
                 _ => println!("Entrada inválida: {}", user_input),
             }
         }
@@ -51,6 +52,23 @@ static FORBIDDEN_IDS: [&str; 8] = [
     "INV",
     "T",
 ];
+
+fn greeting() {
+    let message = 
+"---- Calculadora de Álgebra Lineal ----
+
+Desarrollada en conjunto por:
+
+    * Tomás Badenes
+
+    * Santiago Fernández
+
+Veáse https://github.com/b-Tomas/calculadora
+
+Para mas información acerca del funcionamiento de la calculadora, ingrese `ayuda`
+    ";
+    println!("{}", message);
+}
 
 fn show_var(elements: &[&str], definitions: &mut Definitions) {
     if elements.len() > 1 {
@@ -142,8 +160,7 @@ fn declare_var(command: &[&str], definitions: &mut Definitions) {
 
 fn ayuda() {
     let message = 
-"Calculadora: TODO: descripcion, mensajes, etc
-
+"
 Uso:
     * `ayuda`: Muestra este mensaje
     * `var <NOMBRE> <TIPO> [dimensiones]`: Declara una variable
@@ -154,6 +171,7 @@ Uso:
             - `var MAT MATRIZ 2 2` El programa pedirá ingresar los datos separados por espacios y saltos de linea
     * `mostrar [identificador]`: Sin argumentos, muestra los detalles de todas las variables declaradas. Filtra por los nombres dados
     * `ecu`: Resolver una ecuación. La sintaxis para ecuaciones se detalla en el archivo README.md
+    * `ecsis`: Ingresar un sistema de ecuaciones para determinar la compatibilidad del sistema
     * `salir`: Termina el programa
 ";
     print!("{}", message);
@@ -209,4 +227,38 @@ fn read_matrix(m: usize, n: usize) -> Result<Matrix, Box<dyn Error>> {
 
     }
     return Ok(mat);
+}
+
+fn system_solve() {
+    println!("Cantidad de incógnitas: ");
+    let mut incognitas = String::new();
+    stdout().flush().unwrap();
+    stdin().read_line(&mut incognitas).unwrap();
+    println!("Cantidad de ecuaciones: ");
+    let mut ecuaciones = String::new();
+    stdout().flush().unwrap();
+    stdin().read_line(&mut ecuaciones).unwrap();
+    if let (Ok(cant_incognitas), Ok(cant_ecuaciones)) = (incognitas.trim().parse::<usize>(), ecuaciones.trim().parse::<usize>()) {
+        println!("Ingrese los datos separados por espacios, y presione Enter luego de cada fila. Escriba los datos en formato matriz expandida A|b siendo b el vector independiente");    
+        if let Ok(mat) = read_matrix(cant_ecuaciones, cant_incognitas+1) {
+            let result = math::solve_system(&mat);
+            if result.is_incompatible() {
+                println!("El sistema de ecuaciones");
+                print_matrix(&mat);
+                println!("Es incompatible");
+            } else if result.is_compatible_indeterminado() {
+                println!("El sistema de ecuaciones");
+                print_matrix(&mat);
+                println!("Es compatible Indeterminado");
+            }else {
+                println!("El sistema de ecuaciones");
+                print_matrix(&mat);
+                println!("Es compatible determinado");
+            }
+        } else {
+        println!("Error en la carga de datos");
+        }
+    } else {
+        println!("No ha ingresado los datos");
+    }
 }
