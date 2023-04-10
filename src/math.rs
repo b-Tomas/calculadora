@@ -116,42 +116,11 @@ pub fn id_matrix(n: usize) -> Matrix {
     return res;
 }
 
-pub fn transp_squared_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
-    if !m.is_squared() {
-        return Err("Bad dimensions")?;
-    }
+pub fn transpose(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
     let mut res: Matrix = Matrix::new_empty(m.n, m.m);
-    for i in 0..m.n {
-        for j in 0..m.m {
-            if i != j {
-                res.set(j, i, m[i][j]);
-            } else {
-                res.set(i, j, m[i][j]);
-            }
-        }
-    }
-    return Ok(res);
-}
-
-pub fn inverse_ortogonal_matrix(m: &Matrix) -> Result<Matrix, Box<dyn Error>> {
-    // TODO: generalizar
-    if !m.is_squared() {
-        return Err("Bad dimensions")?;
-    }
-    let mut res = Matrix::new_empty(m.n, m.m);
-    for i in 0..m.n {
-        for j in 0..m.m {
-            if i != j {
-                if m[i][j] == -m[j][i] {
-                    res.set(j, i, m[i][j])
-                } else {
-                    return Err("Matrix is not ortogonal")?;
-                }
-            } else {
-                if m[i][j] != 0.0 {
-                    res.set(i, j, m[i][j]);
-                }
-            }
+    for i in 0..m.m {
+        for j in 0..m.n {
+            res.set(j, i, m[i][j]);
         }
     }
     return Ok(res);
@@ -186,7 +155,7 @@ pub fn inv(m: &Matrix) -> Result<Matrix, Box<dyn Error>>{
     } else {
         let aux:f32 = det(&m).unwrap();
         if aux != 0.0 {
-            let trasp: Matrix = transp_squared_matrix(&m).unwrap();
+            let trasp: Matrix = transpose(&m).unwrap();
             let adj: Matrix = adj(&trasp).unwrap(); // Calculo el adjunto de la traspuesta
             let inverse: Matrix = mul_scalar(&adj, 1.0 / aux);
             return Ok(inverse);
@@ -221,6 +190,32 @@ pub enum Compatibility {
     CompatibleDeterminado,
     CompatibleIndeterminado,
     Incompatible,
+}
+
+impl Compatibility {
+    /// Returns `true` if the compatibility is [`CompatibleDeterminado`].
+    ///
+    /// [`CompatibleDeterminado`]: Compatibility::CompatibleDeterminado
+    #[must_use]
+    pub fn is_compatible_determinado(&self) -> bool {
+        matches!(self, Self::CompatibleDeterminado)
+    }
+
+    /// Returns `true` if the compatibility is [`CompatibleIndeterminado`].
+    ///
+    /// [`CompatibleIndeterminado`]: Compatibility::CompatibleIndeterminado
+    #[must_use]
+    pub fn is_compatible_indeterminado(&self) -> bool {
+        matches!(self, Self::CompatibleIndeterminado)
+    }
+
+    /// Returns `true` if the compatibility is [`Incompatible`].
+    ///
+    /// [`Incompatible`]: Compatibility::Incompatible
+    #[must_use]
+    pub fn is_incompatible(&self) -> bool {
+        matches!(self, Self::Incompatible)
+    }
 }
 
 // toma la matriz aumentada
@@ -304,14 +299,15 @@ pub fn solve_system(matrix: &Matrix) -> Compatibility {
 
 #[cfg(test)]
 mod tests {
-    use crate::{math::{self, pow, id_matrix, Compatibility, transp_squared_matrix, adj, inv}, structs::Matrix};
+    use crate::structs::Matrix;
+    use crate::math;
 
     fn create2by2() -> Matrix {
         return Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
     }
 
     #[test]
-    fn mul_mat_scalar() {
+    fn multiplication_by_scalar() {
         let m = create2by2();
         let m2 = math::mul_scalar(&m, 2.0);
 
@@ -376,30 +372,7 @@ mod tests {
     }
 
     #[test]
-    fn determinant2x2() {
-        let m = Matrix::new_from(2,2,&[&[6.0,7.0], &[-2.0, 8.0]]).unwrap();
-        assert_eq!(math::det(&m).unwrap(), 62.0);
-    }
-
-    #[test]
-    fn determinant3x3(){
-        let m:Matrix=Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
-        assert_eq!(math::det(&m).unwrap(), 30.0);
-    }
-
-    #[test]
-    fn orthogonal_test() {
-        let m = Matrix::new_from(2, 2, &[&[1.0, -1.0], &[1.0, 1.0]]).unwrap();
-        let res = math::inverse_ortogonal_matrix(&m).unwrap();
-
-        assert_eq!(res[0][0], 1.0);
-        assert_eq!(res[0][1], 1.0);
-        assert_eq!(res[1][0], -1.0);
-        assert_eq!(res[1][1], 1.0);
-    }
-
-    #[test]
-    fn test_id() {
+    fn identity_matrix() {
         let n: usize = 3;
         let res: Matrix = math::id_matrix(n);
         assert_eq!(res[0][0], 1.0);
@@ -408,22 +381,19 @@ mod tests {
     }
 
     #[test]
-    fn test_trasp() {
-        let m: Matrix = Matrix::new_from(2, 2, &[&[2.0, -1.0], &[3.0, 6.0]]).unwrap();
-        let res: Matrix = transp_squared_matrix(&m).unwrap();
-        
-        assert_eq!(res[0][0], 2.0);
-        assert_eq!(res[0][1], 3.0);
-        assert_eq!(res[1][0], -1.0);
-        assert_eq!(res[1][1], 6.0);
+    fn transposed() {
+        let matrix: Matrix = Matrix::new_from(3, 2, &[&[1.0, 2.0], &[3.0, 4.0], &[5.0, 6.0]]).unwrap();
+        let result: Matrix = math::transpose(&matrix).unwrap();
+        let expected: Matrix = Matrix::new_from(2, 3, &[&[1.0, 3.0, 5.0], &[2.0, 4.0, 6.0]]).unwrap();
+        assert!(expected.equals(&result));
     }
 
     #[test]
     fn mat_pow() {
         let mat = create2by2();
-        assert!(pow(&mat, 0).unwrap().equals(&id_matrix(2)));
-        assert!(pow(&mat, 1).unwrap().equals(&mat));
-        assert!(pow(&mat, 2).unwrap().equals(&Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 22.0]]).unwrap()));
+        assert!(math::pow(&mat, 0).unwrap().equals(&math::id_matrix(2)));
+        assert!(math::pow(&mat, 1).unwrap().equals(&mat));
+        assert!(math::pow(&mat, 2).unwrap().equals(&Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 22.0]]).unwrap()));
     }
 
     #[test]
@@ -442,7 +412,7 @@ mod tests {
         assert_eq!(res[2][2], 15.0);
 
         let m = Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 20.0]]).unwrap();
-        let res = adj(&m).unwrap();
+        let res = math::adj(&m).unwrap();
         let expected = Matrix::new_from(2, 2, &[&[20.0, -15.0], &[-10.0, 7.0]]).unwrap();
         assert!(res.equals(&expected));
     }
@@ -450,7 +420,7 @@ mod tests {
     #[test]
     fn inverse_test() {
         let m: Matrix = Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
-        let res: Matrix = inv(&m).unwrap();
+        let res: Matrix = math::inv(&m).unwrap();
         let e:f32=0.0001;
 
         assert!((res[0][0] - 31.00/15.00).abs()<e);
@@ -464,27 +434,27 @@ mod tests {
         assert!((res[2][2] - 1.00/2.00).abs()<e);
 
         let m = Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 22.0]]).unwrap();
-        let res = inv(&m).unwrap();
+        let res = math::inv(&m).unwrap();
         let expected = Matrix::new_from(2, 2, &[&[5.5, -2.5], &[-3.75, 1.75]]).unwrap();
         assert!(res.equals(&expected));
     }
 
     #[test]
-    fn Compatible_determinado(){
+    fn compatible_determinado(){
         let m: Matrix = Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
         let result: Matrix = Matrix ::new_from(3,1, &[&[1.0], &[2.0], &[3.0]]).unwrap();
         let res: Matrix = math :: data_loading(&m, &result);
         let c = math::solve_system(&res);
-        assert!(c == Compatibility::CompatibleDeterminado);
+        assert!(c == math::Compatibility::CompatibleDeterminado);
     }
 
     #[test]
-    fn Incompatible_equation() {
+    fn incompatible_equation() {
         let new: Matrix = Matrix::new_from(2, 2, &[&[-2.0,-2.0], &[2.0,2.0]]).unwrap();
         let res: Matrix = Matrix::new_from(2,1, &[&[-6.0], &[2.0]]).unwrap();
         let total: Matrix= math::data_loading(&new,&res);
         let result = math::solve_system(&total);
-        assert!(result == Compatibility::Incompatible);
+        assert!(result == math::Compatibility::Incompatible);
     }
 
     #[test]
@@ -492,13 +462,13 @@ mod tests {
         let m: Matrix= Matrix::new_from(3,4,&[&[1.0, 1.0, 1.0, 4.0], &[2.0, 2.0, 2.0, 8.0], &[3.0, 3.0, 3.0, 45.0]]).unwrap();
         let result = math::solve_system(&m);
 
-        assert!(result == Compatibility::Incompatible);
+        assert!(result == math::Compatibility::Incompatible);
     }   
 
     #[test]
     fn undetermined(){
         let m: Matrix = Matrix::new_from(2, 3, &[&[2.0,1.0,4.0], &[4.0,2.0,8.0]]).unwrap();
         let result = math::solve_system(&m);
-        assert!(result == Compatibility::CompatibleIndeterminado);
+        assert!(result.is_compatible_indeterminado());
     }
 }

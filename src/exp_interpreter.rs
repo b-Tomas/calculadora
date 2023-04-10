@@ -3,7 +3,7 @@ use phf::{phf_map, Map};
 // Tools for interpreting and calculating expressions
 use std::{collections::{HashMap}, error::Error};
 
-use crate::{structs::Matrix, math::{mul_scalar, mul, sum, sub, pow, transp_squared_matrix, det, inv}};
+use crate::{structs::Matrix, math::{mul_scalar, mul, sum, sub, pow, transpose, det, inv}};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Operators {
@@ -257,7 +257,7 @@ impl<'a> ExpTree<'a> {
                         if let Ok(left) = left.solve() {
                             if left.is_scalar() {
                                 return Err("No se puede aplicar la operacion Transponer a un escalar")?;
-                            } else if let Ok(result) = transp_squared_matrix(left.as_matrix().unwrap()) {
+                            } else if let Ok(result) = transpose(left.as_matrix().unwrap()) {
                                 return Ok(Value::Matrix(result));
                             }
                         }
