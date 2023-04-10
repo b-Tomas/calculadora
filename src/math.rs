@@ -164,10 +164,143 @@ pub fn inv(m: &Matrix) -> Result<Matrix, Box<dyn Error>>{
         }
     }
 }
+fn data_loading(m: &Matrix, results: &Matrix) -> Matrix {
+    let mut res: Matrix = Matrix::new_empty(m.n, m.m+1);
+    for i in 0..m.n {
+        for j in 0..m.m {
+            res.set(i,j,m[i][j]);
+        }
+        res.set(i,res.m, results[i][0]);
+    }
+    return res;
+}  
+
+fn swap_rows(m: &mut Matrix, i: usize, j: usize) {
+    let n_cols = m[0].len();
+    let mut temp = vec![0.0; n_cols];
+    for col_index in 0..n_cols {
+        temp[col_index] = m[j][col_index];
+        m.set( j, col_index, m[i][col_index]);
+        m.set( i, col_index, temp[col_index]);
+    }
+}
+
+#[derive(PartialEq, Eq)]
+pub enum Compatibility {
+    CompatibleDeterminado,
+    CompatibleIndeterminado,
+    Incompatible,
+}
+
+impl Compatibility {
+    /// Returns `true` if the compatibility is [`CompatibleDeterminado`].
+    ///
+    /// [`CompatibleDeterminado`]: Compatibility::CompatibleDeterminado
+    #[must_use]
+    pub fn is_compatible_determinado(&self) -> bool {
+        matches!(self, Self::CompatibleDeterminado)
+    }
+
+    /// Returns `true` if the compatibility is [`CompatibleIndeterminado`].
+    ///
+    /// [`CompatibleIndeterminado`]: Compatibility::CompatibleIndeterminado
+    #[must_use]
+    pub fn is_compatible_indeterminado(&self) -> bool {
+        matches!(self, Self::CompatibleIndeterminado)
+    }
+
+    /// Returns `true` if the compatibility is [`Incompatible`].
+    ///
+    /// [`Incompatible`]: Compatibility::Incompatible
+    #[must_use]
+    pub fn is_incompatible(&self) -> bool {
+        matches!(self, Self::Incompatible)
+    }
+}
+
+// toma la matriz aumentada
+pub fn solve_system(matrix: &Matrix) -> Compatibility {
+    let m = matrix.m;
+    let n = matrix.n;
+    let mut matrix = matrix.clone();
+
+    // Paso 1: Escalonar la matriz aumentada
+    let mut i = 0;
+    let mut j = 0;
+    while i < m && j < n {
+        // Buscar el valor máximo en la columna j
+        let mut max_row = i;
+        for k in i+1..m {
+            if matrix[k][j].abs() > matrix[max_row][j].abs() {
+                max_row = k;
+            }
+        }
+
+        // Intercambiar filas para tener el valor máximo en la posición (i, j)
+        if max_row != i {
+            swap_rows(&mut matrix, i, max_row);
+        }
+        // Si el valor máximo en la posición (i, j) es cero, entonces toda la columna es cero
+        if matrix[i][j] == 0.0 {
+            j += 1;
+            continue;
+        }
+
+        // Escalonar la fila i para tener un 1 en la posición (i, j)
+        let pivot = matrix[i][j];
+        for k in j..n {
+            matrix.set(i, k,  matrix[i][k] / pivot);
+        }
+
+        // Restar la fila i a las filas siguientes para tener ceros debajo del pivote
+        for k in i+1..m {
+            let factor = matrix[k][j];
+            for l in j..n {
+                matrix.set(k, l, matrix[k][l] - factor * matrix[i][l]);
+            }
+        }
+
+        i += 1;
+        j += 1;
+    }
+
+    // Paso 2: Determinar la compatibilidad del sistema
+    let mut rank = m;
+    for i in (0..m).rev() {
+        let mut nonzero = false;
+        for j in 0..n-1 {
+            if matrix[i][j] != 0.0 {
+                nonzero = true;
+                break;
+            }
+        }
+        if !nonzero {
+            if matrix[i][n-1] != 0.0 {
+                return Compatibility::Incompatible;
+            }
+            rank -= 1;
+        }
+    }
+    if rank < n-1 {
+        return Compatibility::CompatibleIndeterminado;
+    }
+
+    // Paso 3: Resolver el sistema mediante sustitución hacia atrás
+    let mut x = Matrix::new_empty(n-1, 1);
+    for i in (0..n-1).rev() {
+        let mut sum = 0.0;
+        for j in i+1..n-1 {
+            sum += matrix[i][j] * x[j][0];
+        }
+        x.set(i,0 , matrix[i][n-1] - sum);
+    }
+    Compatibility::CompatibleDeterminado
+}
 
 #[cfg(test)]
 mod tests {
-    use crate::{math::{self, pow, id_matrix, inv, adj, transpose}, structs::Matrix};
+    use crate::structs::Matrix;
+    use crate::math;
 
     fn create2by2() -> Matrix {
         return Matrix::new_from(2, 2, &[&[1.0, 2.0], &[3.0, 4.0]]).unwrap();
@@ -250,7 +383,7 @@ mod tests {
     #[test]
     fn transposed() {
         let matrix: Matrix = Matrix::new_from(3, 2, &[&[1.0, 2.0], &[3.0, 4.0], &[5.0, 6.0]]).unwrap();
-        let result: Matrix = transpose(&matrix).unwrap();
+        let result: Matrix = math::transpose(&matrix).unwrap();
         let expected: Matrix = Matrix::new_from(2, 3, &[&[1.0, 3.0, 5.0], &[2.0, 4.0, 6.0]]).unwrap();
         assert!(expected.equals(&result));
     }
@@ -258,12 +391,12 @@ mod tests {
     #[test]
     fn mat_pow() {
         let mat = create2by2();
-        assert!(pow(&mat, 0).unwrap().equals(&id_matrix(2)));
-        assert!(pow(&mat, 1).unwrap().equals(&mat));
-        assert!(pow(&mat, 2).unwrap().equals(&Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 22.0]]).unwrap()));
+        assert!(math::pow(&mat, 0).unwrap().equals(&math::id_matrix(2)));
+        assert!(math::pow(&mat, 1).unwrap().equals(&mat));
+        assert!(math::pow(&mat, 2).unwrap().equals(&Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 22.0]]).unwrap()));
     }
 
-    #[test] //test for ad matrix
+    #[test]
     fn test_adj() {
         let m: Matrix = Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
         let res: Matrix = math::adj(&m).unwrap();
@@ -279,7 +412,7 @@ mod tests {
         assert_eq!(res[2][2], 15.0);
 
         let m = Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 20.0]]).unwrap();
-        let res = adj(&m).unwrap();
+        let res = math::adj(&m).unwrap();
         let expected = Matrix::new_from(2, 2, &[&[20.0, -15.0], &[-10.0, 7.0]]).unwrap();
         assert!(res.equals(&expected));
     }
@@ -301,8 +434,41 @@ mod tests {
         assert!((res[2][2] - 1.00/2.00).abs()<e);
 
         let m = Matrix::new_from(2, 2, &[&[7.0, 10.0], &[15.0, 22.0]]).unwrap();
-        let res = inv(&m).unwrap();
+        let res = math::inv(&m).unwrap();
         let expected = Matrix::new_from(2, 2, &[&[5.5, -2.5], &[-3.75, 1.75]]).unwrap();
         assert!(res.equals(&expected));
+    }
+
+    #[test]
+    fn compatible_determinado(){
+        let m: Matrix = Matrix::new_from(3, 3, &[&[2.0, -1.0, 3.0], &[3.0, 6.0, 7.0], &[4.0, -2.0, 8.0]]).unwrap();
+        let result: Matrix = Matrix ::new_from(3,1, &[&[1.0], &[2.0], &[3.0]]).unwrap();
+        let res: Matrix = math :: data_loading(&m, &result);
+        let c = math::solve_system(&res);
+        assert!(c == math::Compatibility::CompatibleDeterminado);
+    }
+
+    #[test]
+    fn incompatible_equation() {
+        let new: Matrix = Matrix::new_from(2, 2, &[&[-2.0,-2.0], &[2.0,2.0]]).unwrap();
+        let res: Matrix = Matrix::new_from(2,1, &[&[-6.0], &[2.0]]).unwrap();
+        let total: Matrix= math::data_loading(&new,&res);
+        let result = math::solve_system(&total);
+        assert!(result == math::Compatibility::Incompatible);
+    }
+
+    #[test]
+    fn very_incompatible() {
+        let m: Matrix= Matrix::new_from(3,4,&[&[1.0, 1.0, 1.0, 4.0], &[2.0, 2.0, 2.0, 8.0], &[3.0, 3.0, 3.0, 45.0]]).unwrap();
+        let result = math::solve_system(&m);
+
+        assert!(result == math::Compatibility::Incompatible);
+    }   
+
+    #[test]
+    fn undetermined(){
+        let m: Matrix = Matrix::new_from(2, 3, &[&[2.0,1.0,4.0], &[4.0,2.0,8.0]]).unwrap();
+        let result = math::solve_system(&m);
+        assert!(result.is_compatible_indeterminado());
     }
 }
