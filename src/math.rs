@@ -195,7 +195,7 @@ pub fn inv(m: &Matrix) -> Result<Matrix, Box<dyn Error>>{
         }
     }
 }
-fn data_loading(m:&Matrix, results: &Matrix) -> Matrix {
+fn data_loading(m: &Matrix, results: &Matrix) -> Matrix {
     let mut res: Matrix = Matrix::new_empty(m.n, m.m+1);
     for i in 0..m.n {
         for j in 0..m.m {
