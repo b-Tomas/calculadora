@@ -1,6 +1,6 @@
 use std::{io::{self, stdin, stdout, Write}, collections::HashMap, error::Error, num::ParseFloatError};
 
-use crate::{exp_interpreter::{Definitions, Value, calculate}, structs::Matrix};
+use crate::{exp_interpreter::{Definitions, Value, calculate}, structs::Matrix, math};
 
 pub struct App {
     definitions: Definitions,
@@ -33,6 +33,7 @@ impl App {
                 "var" => declare_var(elements.as_slice(), &mut self.definitions),
                 "mostrar" => show_var(elements.as_slice(), &mut self.definitions),
                 "ecu" => solve_equation(elements.as_slice(), &self.definitions),
+                "eqsys" => system_solve(),
                 _ => println!("Entrada inválida: {}", user_input),
             }
         }
@@ -154,6 +155,7 @@ Uso:
             - `var MAT MATRIZ 2 2` El programa pedirá ingresar los datos separados por espacios y saltos de linea
     * `mostrar [identificador]`: Sin argumentos, muestra los detalles de todas las variables declaradas. Filtra por los nombres dados
     * `ecu`: Resolver una ecuación. La sintaxis para ecuaciones se detalla en el archivo README.md
+    * `eqsys`: Ingresar un sistema de ecuaciones para determinar la compatibilidad del sistema
     * `salir`: Termina el programa
 ";
     print!("{}", message);
@@ -209,4 +211,38 @@ fn read_matrix(m: usize, n: usize) -> Result<Matrix, Box<dyn Error>> {
 
     }
     return Ok(mat);
+}
+
+fn system_solve() {
+    println!("Cantidad de incógnitas: ");
+    let mut incognitas = String::new();
+    stdout().flush().unwrap();
+    stdin().read_line(&mut incognitas).unwrap();
+    println!("Cantidad de ecuaciones: ");
+    let mut ecuaciones = String::new();
+    stdout().flush().unwrap();
+    stdin().read_line(&mut ecuaciones).unwrap();
+    if let (Ok(cant_incognitas), Ok(cant_ecuaciones)) = (incognitas.trim().parse::<usize>(), ecuaciones.trim().parse::<usize>()) {
+        println!("Ingrese los datos separados por espacios, y presione Enter luego de cada fila. Escriba los datos en formato matriz expandida A|b siendo b el vector independiente");    
+        if let Ok(mat) = read_matrix(cant_ecuaciones, cant_incognitas+1) {
+            let result = math::solve_system(&mat);
+            if result.is_incompatible() {
+                println!("El sistema de ecuaciones");
+                print_matrix(&mat);
+                println!("Es incompatible");
+            } else if result.is_compatible_indeterminado() {
+                println!("El sistema de ecuaciones");
+                print_matrix(&mat);
+                println!("Es compatible Indeterminado");
+            }else {
+                println!("El sistema de ecuaciones");
+                print_matrix(&mat);
+                println!("Es compatible determinado");
+            }
+        } else {
+        println!("Error en la carga de datos");
+        }
+    } else {
+        println!("No ha ingresado los datos");
+    }
 }
