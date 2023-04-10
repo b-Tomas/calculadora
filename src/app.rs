@@ -18,6 +18,9 @@ impl App {
     }
 
     pub fn start(&mut self) -> io::Result<()> {
+        // Clear screen
+        print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+
         loop {
             let mut user_input = String::new();
             prompt(&mut user_input)?;
