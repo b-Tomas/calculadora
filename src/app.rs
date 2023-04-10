@@ -20,7 +20,7 @@ impl App {
     pub fn start(&mut self) -> io::Result<()> {
         // Clear screen
         print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-
+        greeting();
         loop {
             let mut user_input = String::new();
             prompt(&mut user_input)?;
@@ -33,7 +33,7 @@ impl App {
                 "var" => declare_var(elements.as_slice(), &mut self.definitions),
                 "mostrar" => show_var(elements.as_slice(), &mut self.definitions),
                 "ecu" => solve_equation(elements.as_slice(), &self.definitions),
-                "eqsys" => system_solve(),
+                "ecsis" => system_solve(),
                 _ => println!("Entrada inválida: {}", user_input),
             }
         }
@@ -52,6 +52,23 @@ static FORBIDDEN_IDS: [&str; 8] = [
     "INV",
     "T",
 ];
+
+fn greeting() {
+    let message = 
+"---- Calculadora de Álgebra Lineal ----
+
+Desarrollada en conjunto por:
+
+    * Tomás Badenes
+
+    * Santiago Fernández
+
+Veáse https://github.com/b-Tomas/calculadora
+
+Para mas información acerca del funcionamiento de la calculadora, ingrese `ayuda`
+    ";
+    println!("{}", message);
+}
 
 fn show_var(elements: &[&str], definitions: &mut Definitions) {
     if elements.len() > 1 {
@@ -155,7 +172,7 @@ Uso:
             - `var MAT MATRIZ 2 2` El programa pedirá ingresar los datos separados por espacios y saltos de linea
     * `mostrar [identificador]`: Sin argumentos, muestra los detalles de todas las variables declaradas. Filtra por los nombres dados
     * `ecu`: Resolver una ecuación. La sintaxis para ecuaciones se detalla en el archivo README.md
-    * `eqsys`: Ingresar un sistema de ecuaciones para determinar la compatibilidad del sistema
+    * `ecsis`: Ingresar un sistema de ecuaciones para determinar la compatibilidad del sistema
     * `salir`: Termina el programa
 ";
     print!("{}", message);
