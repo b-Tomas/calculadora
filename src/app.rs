@@ -160,8 +160,7 @@ fn declare_var(command: &[&str], definitions: &mut Definitions) {
 
 fn ayuda() {
     let message = 
-"Calculadora: TODO: descripcion, mensajes, etc
-
+"
 Uso:
     * `ayuda`: Muestra este mensaje
     * `var <NOMBRE> <TIPO> [dimensiones]`: Declara una variable
