@@ -411,12 +411,14 @@ fn postfix_to_tree<'a>(
                 if let Some(right_child) = stack.pop() {
                     node.set_right_op(right_child);
                 } else {
-                    panic!("Run out of stack")
+                    // panic!("Run out of stack")
+                    return None
                 }
                 if let Some(left_child) = stack.pop() {
                     node.set_left_op(left_child);
                 } else {
-                    panic!("Run out of stack")
+                    // panic!("Run out of stack")
+                    return None
                 }
             }
             stack.push(node);
