@@ -1,5 +1,7 @@
 # Calculadora con Matrices
 
+![](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
+
 > Autores: Tomás Badenes y Santiago Fernandez
 
 ![Video de demostracion](doc-assets/demo.gif)
