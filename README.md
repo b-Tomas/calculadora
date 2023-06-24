@@ -1,6 +1,8 @@
 # Calculadora con Matrices
 
-This should become the english version. I'm just testing right now
+TODO: English translation
+
+Click [acá](https://github.com/b-Tomas/calculadora/blob/main/README.es-AR.md) para leer en español.
 
 ![](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
 

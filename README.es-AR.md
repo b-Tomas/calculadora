@@ -1,5 +1,7 @@
 # Calculadora con Matrices
 
+Click [here](https://github.com/b-Tomas/calculadora/blob/main/README.md) to read in english.
+
 ![](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
 
 > Autores: Tomás Badenes y Santiago Fernandez
