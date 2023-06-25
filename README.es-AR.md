@@ -32,7 +32,7 @@ Esta calculadora es capaz de resolver calculos combinados utilizando operaciones
 - `*`: Multiplicación
 - `/`: División
 - `+`: Suma
-- `-`: Resta (o suma con la `-1 * el sustraendo`)
+- `-`: Resta (o suma con el producto de -1 por el sustraendo)
 - `^`: Potencia
 - `T`: Transpuesta de una matriz (sintaxis: `<matriz> T`)
 - `DET`: Determinante de una matriz (sintaxis: `<matriz> DET`)
@@ -42,7 +42,7 @@ Esta calculadora es capaz de resolver calculos combinados utilizando operaciones
 
 Utilizando el comando `ecu` y como parametro un cadena de operandos y operadores separados por espacios, la calculadora resolverá el cálculo si tiene solución, o mostrará un mensaje de error en caso de expresiones malformadas o operaciones no definidas.
 
-Por ejemplo: `((((Matriz A + B) * (Matriz A al cuadrado)) <- Transponer) <- Determinante) + PI`
+Por ejemplo, para calcular `((((Matriz A + B) * (Matriz A al cuadrado)) <- Transponer) <- Determinante) + PI`:
 
 ```
 >>> ecu ( ( A + B ) * ( A ^ 2 ) T ) DET + PI
@@ -149,6 +149,6 @@ Visite la página de [releases](https://github.com/b-Tomas/calculadora/releases)
 
 ## Acerca de las soluciones
 
-La lógica responsable de la solución de los problemas matemáticos se encuentra en el archivo `src/math.rs`. Dado que se trataba de trabajo práctico de matemáticas, decidimos mantenernos alejados de librerías externas que nos faciliten los cálculos y programamos las soluciones desde cero.
+La lógica responsable de la solución de los problemas matemáticos se encuentra en el archivo `src/math.rs`. Dado que se trataba de trabajo práctico de matemáticas, decidimos mantenernos alejados de librerías externas que nos faciliten los cálculos para programar las soluciones desde cero.
 
-Además, fue nuestro primer contacto con el lenguaje Rust. Si bien el código no es perfecto o el más prolijo, creemos que es bastante aceptable habiendo tenido una semana.
+Además, fue nuestro primer contacto con el lenguaje Rust. Si bien el código no es perfecto o el más prolijo, creemos que es bastante aceptable habiendo tenido sólo una semana para completarlo.
