@@ -1,55 +1,58 @@
-# Calculadora con Matrices
+# Matrix Calculator
+
+Click [acá](https://github.com/b-Tomas/calculadora/blob/main/README.es-AR.md) para leer en español.
 
 ![](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
 
-> Autores: Tomás Badenes y Santiago Fernandez
+> Authors: Tomás Badenes and Santiago Fernandez
 
-![Video de demostracion](doc-assets/demo.gif)
+![Demo Video](doc-assets/demo.gif)
 
-## Descripción
+## Description
 
-Este programa fue el resultado de un desafío de un docente de cátedra de matemática. La consigna era:
+This program was the result of a challenge from a mathematics professor. The assignment was:
 
-> 1. Escribir un código que dadas dos matrices analice si pueden sumarse y en caso afirmativo calcule la suma
-> 2. Escribir un código que dadas dos matrices analice si el producto está definido y en caso afirmativo lo calcule
-> 3. Escribir un código que dada una matriz analice si tiene inversa y en caso afirmativo la calcule
-> 4. Implemente un programa que dado un sistema de ecuaciones lineales analice la compatibilidad del sistema
+> 1. Write a program that, given two matrices, analyzes if they can be added, and if so, calculates the sum.
+> 2. Write a program that, given two matrices, analyzes if the product is defined, and if so, calculates it.
+> 3. Write a program that, given a matrix, analyzes if it has an inverse, and if so, calculates it.
+> 4. Write a program that, given a system of linear equations, analyzes the compatibility of the system.
 
-Nosotros hemos decidido llevarlo un paso mas allá y crear una calculadora completa, escrita en Rust, que integre las soluciones a los cuatro problemas propuestos y un poco mas. Sus características se detallan [abajo](#características), así como las [instrucciones de instalación y uso](#utilización).
+We decided to go a step further and create a complete calculator, written in Rust, that integrates the solutions to the four proposed problems and more. Its features are detailed [below](#features), as well as the [installation and usage instructions](#usage).
 
-## Características
+## Features
 
-La calculadora funciona mediante comandos. La sintaxis general es: `<COMANDO> [parámetros]`
+The calculator works through commands. The general syntax is: `<COMMAND> [parameters]`
 
-Para obtener una lista de los posibles comandos, utilice el comando `ayuda`
+To obtain a list of possible commands, use the `help` command.
 
-### Operaciones entre escalares y matrices
+### Scalar and Matrix Operations
 
-Esta calculadora es capaz de resolver calculos combinados utilizando operaciones entre matrices y escalares. Las operaciones soportadas son:
+This calculator can solve combined calculations using operations between matrices and scalars. The supported operations are:
 
-- `*`: Multiplicación
-- `/`: División
-- `+`: Suma
-- `-`: Resta (o suma con la `-1 * el sustraendo`)
-- `^`: Potencia
-- `T`: Transpuesta de una matriz (sintaxis: `<matriz> T`)
-- `DET`: Determinante de una matriz (sintaxis: `<matriz> DET`)
-- `INV`: Inversa de una matriz (sintaxis: `<matriz> INV`)
+- `*`: Multiplication
+- `/`: Division
+- `+`: Addition
+- `-`: Subtraction (or for matrices, addition with -1 times the subtrahend)
+- `^`: Power
+- `T`: Transpose of a matrix (syntax: `<matrix> T`)
+- `DET`: Determinant of a matrix (syntax: `<matrix> DET`)
+- `INV`: Inverse of a matrix (syntax: `<matrix> INV`)
 
-### Resolucion de cálculos combinados
+### Solving Combined Calculations
 
-Utilizando el comando `ecu` y como parametro un cadena de operandos y operadores separados por espacios, la calculadora resolverá el cálculo si tiene solución, o mostrará un mensaje de error en caso de expresiones malformadas o operaciones no definidas.
+Using the `ecu` command (from __equation__ in spanish) and providing a string of operands and operators separated by spaces, the calculator will solve the calculation if it has a solution, or display an error message if a malformed expression or undefined operation is given.
 
-Por ejemplo: `((((Matriz A + B) * (Matriz A al cuadrado)) <- Transponer) <- Determinante) + PI`
+For example, to calculate `((((Matrix A + B) * (Matrix A squared)) <- Transpose) <- Determinant) + PI` write
 
 ```
 >>> ecu ( ( A + B ) * ( A ^ 2 ) T ) DET + PI
 Resultado: -186.8585
 ```
 
-### Declaracion y almacenamiento de variables
+### Declaration and Storage of Variables
 
-Utilizando el comando `mostrar` se pueden ver las variables almacenadas. La calculadora incluye algunas por defecto:
+The `mostrar` command (__show__ in spanish) can be used to inspect the stored variables. The calculator includes some default variables:
+
 
 ```
 >>> mostrar
@@ -66,7 +69,8 @@ A =
 C = 0
 ```
 
-También se le puede exigir al comando mostrar que filtre por nombre de variable:
+The `mostrar` command can also be asked to filter by variable name:
+
 
 ```
 >>> mostrar A PI E
@@ -78,34 +82,35 @@ PI = 3.1415
 
 La variable `E` no está definida
 ```
+(The message says: _The variable \`E\` is not defined_)
 
-Estos identificadores pueden luego ser utilizados en las expresiones `ecu`
+These identifiers can then be used in `ecu` expressions.
 
-### Sistemas de ecuaciones
+### Systems of Equations
 
-Mediante el comando `ecsis` se puede ingresar un sistema de ecuaciones en la forma de la matriz expandida en el vector resultado (A|b) para determinar si este tiene solución o no.
+The `ecsis` command allows entering a system of equations in the form of the augmented matrix in the result vector (A|b) to determine if it has a solution or not.
 
-## Utilización
+## Setup
 
-### Instalación desde código fuente
+### Installation from Source Code
 
-1. Clonar el repositorio:
+1. Clone the repository:
 
 ```
 git clone https://github.com/b-Tomas/calculadora.git
 ```
 
-O utilizar el botón verde para descargar un comprimido `.zip`
+Or use the green button to download a `.zip` archive.
 
-2. Descargar e instalar la versión de rust para tu sistema operativo desde la [página oficial](https://www.rust-lang.org/tools/install)
+2. Download and install the Rust version for your operating system from the [official page](https://www.rust-lang.org/tools/install).
 
-3. Compile el proyecto
+3. Compile the project:
 
 ```
 cargo build
 ```
 
-4. Compruebe que los tests de unidad:
+4. Run unit tests:
 
 ```
 $ cargo test
@@ -135,18 +140,21 @@ test structs::tests::is_squared ... ok
 test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 ```
 
-5. Inicie el programa:
+
+5. Start the program:
+
 
 ```
 cargo run
 ```
 
-### Instalación de binarios
 
-Visite la página de [releases](https://github.com/b-Tomas/calculadora/releases) para descargar el programa compilado para su plataforma, aunque se recomienda instalar de código fuente para tener disponible la última versión del programa.
+### Binary Installation
 
-## Acerca de las soluciones
+Visit the [releases](https://github.com/b-Tomas/calculadora/releases) page to download the compiled program for your platform, although installing from source code is recommended to have the latest version of the program.
 
-La lógica responsable de la solución de los problemas matemáticos se encuentra en el archivo `src/math.rs`. Dado que se trataba de trabajo práctico de matemáticas, decidimos mantenernos alejados de librerías externas que nos faciliten los cálculos y programamos las soluciones desde cero.
+## About the Solutions
 
-Además, fue nuestro primer contacto con el lenguaje Rust. Si bien el código no es perfecto o el más prolijo, creemos que es bastante aceptable habiendo tenido una semana.
+The logic responsible for solving the mathematical problems is located in the `src/math.rs` file. Since it was a mathematics assignment, we decided to stay away from external libraries that could make the calculations easier and fry our brains programming the solutions from scratch.
+
+Furthermore, this was our first encounter with the Rust language. While the code is not perfect or the cleanest (and we know rustaceans will cringe while reading it), we believe it is quite acceptable considering we had only a couple of days to write it.
